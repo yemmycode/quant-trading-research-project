@@ -1,0 +1,73 @@
+
+QUANT STRATEGY RESEARCH REPORT
+================================
+
+Project: Moving Average Trend-Following Strategy Research
+Initial Capital: R10,000
+Test Period: 2018-01-01 to 2025-01-01
+Position Size: 50%
+Trading Cost Assumption: 0.10% per trade
+Regime Filter: 200-Day Moving Average
+
+SUMMARY
+-------
+
+This research tested multiple moving-average crossover strategy configurations
+across selected assets including SPY, QQQ, AAPL, MSFT, and TSLA.
+
+The strategy used:
+- Short moving average vs long moving average crossover
+- 200-day moving average market regime filter
+- 50% capital exposure
+- 0.10% estimated trading cost per transaction
+
+BEST STRATEGY BY SHARPE RATIO
+-----------------------------
+
+Ticker: QQQ
+Short Window: 20.0
+Long Window: 100.0
+Total Return: 65.48%
+Volatility: 8.29%
+Sharpe Ratio: 1.02
+Max Drawdown: -11.53%
+Final Value: R16548.40
+
+BEST STRATEGY BY FINAL VALUE
+----------------------------
+
+Ticker: TSLA
+Short Window: 20.0
+Long Window: 100.0
+Total Return: 231.29%
+Volatility: 25.14%
+Sharpe Ratio: 0.89
+Max Drawdown: -36.79%
+Final Value: R33129.45
+
+BEST STRATEGY BY LOWEST DRAWDOWN
+--------------------------------
+
+Ticker: SPY
+Short Window: 10.0
+Long Window: 50.0
+Total Return: 24.01%
+Volatility: 5.43%
+Sharpe Ratio: 0.67
+Max Drawdown: -7.88%
+Final Value: R12401.25
+
+INTERPRETATION
+--------------
+
+The best strategy should not be selected only by final value.
+A more balanced choice should consider:
+- Sharpe Ratio
+- Max Drawdown
+- Volatility
+- Final Value
+- Number of trades
+- Smoothness of equity curve
+
+This report is for research and educational purposes only.
+It does not guarantee future performance.
