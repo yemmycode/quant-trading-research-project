@@ -25,6 +25,8 @@ if str(STRATEGIES_PATH) not in sys.path:
 from moving_average_strategy import run_backtest
 from rsi_strategy import run_rsi_backtest
 
+from risk_manager import create_risk_manager_from_config
+
 from config import (
     START_DATE,
     END_DATE,
@@ -123,6 +125,21 @@ def run_paper_trading_check(
         position=latest_position,
         signal=latest_signal
     )
+
+    risk_manager = create_risk_manager_from_config()
+
+    risk_check = risk_manager.approve_order(
+        ticker=ticker,
+        proposed_position_size=position_size,
+        current_daily_loss=0.00,
+        current_weekly_loss=0.00,
+        current_total_drawdown=0.00,
+        manual_confirmation_given=True,
+        live_order=False
+    )
+
+    if not risk_check.approved:
+        recommendation = f"BLOCKED BY RISK MANAGER: {risk_check.reason}"
 
     status = pd.DataFrame([
         {
