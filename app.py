@@ -402,3 +402,28 @@ if run_paper_button:
     except Exception as e:
         st.error("Paper trading check failed.")
         st.exception(e)
+
+
+# ==============================
+# Paper Trading History
+# ==============================
+
+st.markdown("---")
+st.header("Paper Trading History")
+
+history_file = PROJECT_PATH / "results" / "paper_trading_history.csv"
+
+if history_file.exists():
+    paper_history = pd.read_csv(history_file)
+    st.dataframe(paper_history.tail(50), use_container_width=True)
+
+    history_csv = paper_history.to_csv(index=False).encode("utf-8")
+
+    st.download_button(
+        label="Download Paper Trading History CSV",
+        data=history_csv,
+        file_name="paper_trading_history.csv",
+        mime="text/csv"
+    )
+else:
+    st.info("No paper trading history found yet. Run a paper trading check first.")

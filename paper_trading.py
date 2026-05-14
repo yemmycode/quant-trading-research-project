@@ -24,7 +24,6 @@ if str(STRATEGIES_PATH) not in sys.path:
 
 from moving_average_strategy import run_backtest
 from rsi_strategy import run_rsi_backtest
-
 from risk_manager import create_risk_manager_from_config
 
 from config import (
@@ -48,6 +47,24 @@ def get_latest_recommendation(position, signal):
         return "BUY SIGNAL / ENTER PAPER POSITION"
     else:
         return "STAY IN CASH / NO POSITION"
+
+
+def append_paper_trading_history(status, results_path):
+    """
+    Append latest paper trading status to a cumulative history CSV file.
+    """
+
+    history_file = results_path / "paper_trading_history.csv"
+
+    if history_file.exists():
+        existing_history = pd.read_csv(history_file)
+        updated_history = pd.concat([existing_history, status], ignore_index=True)
+    else:
+        updated_history = status.copy()
+
+    updated_history.to_csv(history_file, index=False)
+
+    return history_file
 
 
 def run_paper_trading_check(
@@ -77,6 +94,8 @@ def run_paper_trading_check(
         results_path = Path(results_path)
 
     results_path.mkdir(parents=True, exist_ok=True)
+
+    ticker = ticker.upper()
 
     if strategy_type == "moving_average":
         data, summary, trade_log = run_backtest(
@@ -152,6 +171,8 @@ def run_paper_trading_check(
             "Latest Signal": latest_signal,
             "Latest Position": latest_position,
             "Recommendation": recommendation,
+            "Risk Approved": risk_check.approved,
+            "Risk Reason": risk_check.reason,
             "Initial Capital": initial_capital,
             "Position Size": position_size,
             "Trading Cost": trading_cost,
@@ -162,9 +183,12 @@ def run_paper_trading_check(
     output_file = results_path / f"paper_trading_status_{ticker}_{strategy_type}.csv"
     status.to_csv(output_file, index=False)
 
+    history_file = append_paper_trading_history(status, results_path)
+
     print("\nPaper trading check completed.")
     print(status.to_string(index=False))
-    print(f"\nStatus saved to: {output_file}")
+    print(f"\nLatest status saved to: {output_file}")
+    print(f"History updated at: {history_file}")
 
     return status, data, summary, trade_log
 
