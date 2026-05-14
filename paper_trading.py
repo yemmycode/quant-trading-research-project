@@ -25,6 +25,7 @@ if str(STRATEGIES_PATH) not in sys.path:
 from moving_average_strategy import run_backtest
 from rsi_strategy import run_rsi_backtest
 from risk_manager import create_risk_manager_from_config
+from database import save_paper_status
 
 from config import (
     START_DATE,
@@ -184,11 +185,13 @@ def run_paper_trading_check(
     status.to_csv(output_file, index=False)
 
     history_file = append_paper_trading_history(status, results_path)
+    db_rows_saved = save_paper_status(status)
 
     print("\nPaper trading check completed.")
     print(status.to_string(index=False))
     print(f"\nLatest status saved to: {output_file}")
     print(f"History updated at: {history_file}")
+    print(f"Database rows saved: {db_rows_saved}")
 
     return status, data, summary, trade_log
 

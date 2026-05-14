@@ -32,3 +32,7 @@ charts/
 # IDE files
 .idea/
 .vscode/
+
+# Local database
+data/*.db
+data/*.sqlite

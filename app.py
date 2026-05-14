@@ -602,3 +602,32 @@ if order_log_file.exists():
     st.dataframe(order_log.tail(20), use_container_width=True)
 else:
     st.info("No order log found yet.")
+
+
+# ==============================
+# Database Viewer
+# ==============================
+
+st.markdown("---")
+st.header("Database Viewer")
+st.write("View latest records stored in the local SQLite database.")
+
+db_table = st.selectbox(
+    "Select Database Table",
+    ["paper_trading_history", "order_log", "strategy_results"]
+)
+
+db_limit = st.number_input(
+    "Number of rows to display",
+    min_value=10,
+    max_value=500,
+    value=50,
+    step=10
+)
+
+try:
+    db_data = read_table(db_table, limit=db_limit)
+    st.dataframe(db_data, use_container_width=True)
+except Exception as e:
+    st.error("Could not read database table.")
+    st.exception(e)

@@ -3,6 +3,9 @@ import sys
 from pathlib import Path
 import argparse
 import pandas as pd
+from datetime import datetime
+
+from database import save_strategy_results
 
 # Project paths
 PROJECT_PATH = Path(r"C:\Users\yemi\OneDrive\Desktop\quant_trading_project")
@@ -170,7 +173,11 @@ def run_batch_tests(results_path=None):
     combined_results.to_csv(csv_file, index=False)
     combined_results.to_excel(excel_file, index=False)
 
+    run_id = datetime.now().strftime("%Y-%m-%d_%H%M%S")
+    db_rows_saved = save_strategy_results(combined_results, run_id=run_id)
+
     print("\nBatch tests completed successfully.")
+    print(f"Database rows saved: {db_rows_saved}")
     print(f"CSV saved to: {csv_file}")
     print(f"Excel saved to: {excel_file}")
 

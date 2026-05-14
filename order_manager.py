@@ -3,6 +3,8 @@ from pathlib import Path
 from datetime import datetime
 import pandas as pd
 
+from database import save_order_log
+
 
 class OrderManager:
     """
@@ -65,6 +67,8 @@ class OrderManager:
             updated_log = log_df
 
         updated_log.to_csv(self.order_log_file, index=False)
+
+        save_order_log(log_df)
 
         return self.order_log_file
 
