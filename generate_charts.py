@@ -20,6 +20,7 @@ if str(STRATEGIES_PATH) not in sys.path:
     sys.path.append(str(STRATEGIES_PATH))
 
 from moving_average_strategy import run_backtest
+from rsi_strategy import run_rsi_backtest
 
 from config import (
     START_DATE,
@@ -32,10 +33,6 @@ from config import (
 
 
 def load_batch_results(results_path):
-    """
-    Load batch test results from the selected results folder.
-    """
-
     batch_results_file = results_path / "batch_test_results.csv"
 
     if not batch_results_file.exists():
@@ -47,10 +44,6 @@ def load_batch_results(results_path):
 
 
 def get_top_strategies(batch_results, metric="Sharpe Ratio", top_n=3):
-    """
-    Select top strategies based on a chosen metric.
-    """
-
     if metric not in batch_results.columns:
         raise ValueError(f"Metric '{metric}' not found in batch results.")
 
@@ -58,36 +51,54 @@ def get_top_strategies(batch_results, metric="Sharpe Ratio", top_n=3):
 
 
 def rerun_strategy(row):
-    """
-    Rerun a strategy using one row from the batch results table.
-    """
-
     ticker = row["Ticker"]
-    short_window = int(row["Short Window"])
-    long_window = int(row["Long Window"])
+    strategy_type = row.get("Strategy Type", "moving_average")
 
-    data_result, summary_result = run_backtest(
-        ticker=ticker,
-        start_date=START_DATE,
-        end_date=END_DATE,
-        short_window=short_window,
-        long_window=long_window,
-        regime_window=REGIME_WINDOW,
-        position_size=POSITION_SIZE,
-        trading_cost=TRADING_COST,
-        initial_capital=INITIAL_CAPITAL
-    )
+    if strategy_type == "moving_average":
+        short_window = int(row["Short Window"])
+        long_window = int(row["Long Window"])
 
-    label = f"{ticker} {short_window}/{long_window}"
+        data_result, summary_result = run_backtest(
+            ticker=ticker,
+            start_date=START_DATE,
+            end_date=END_DATE,
+            short_window=short_window,
+            long_window=long_window,
+            regime_window=REGIME_WINDOW,
+            position_size=POSITION_SIZE,
+            trading_cost=TRADING_COST,
+            initial_capital=INITIAL_CAPITAL
+        )
+
+        label = f"MA | {ticker} {short_window}/{long_window}"
+
+    elif strategy_type == "rsi":
+        rsi_window = int(row["RSI Window"])
+        oversold_level = int(row["Oversold Level"])
+        overbought_level = int(row["Overbought Level"])
+
+        data_result, summary_result = run_rsi_backtest(
+            ticker=ticker,
+            start_date=START_DATE,
+            end_date=END_DATE,
+            rsi_window=rsi_window,
+            oversold_level=oversold_level,
+            overbought_level=overbought_level,
+            regime_window=REGIME_WINDOW,
+            position_size=POSITION_SIZE,
+            trading_cost=TRADING_COST,
+            initial_capital=INITIAL_CAPITAL
+        )
+
+        label = f"RSI | {ticker} {rsi_window} {oversold_level}/{overbought_level}"
+
+    else:
+        raise ValueError(f"Unknown strategy type: {strategy_type}")
 
     return label, data_result
 
 
 def generate_top_strategy_charts(results_path=None, charts_path=None, top_n=3):
-    """
-    Generate equity and drawdown charts for the top strategies by Sharpe Ratio.
-    """
-
     if results_path is None:
         results_path = DEFAULT_RESULTS_PATH
     else:

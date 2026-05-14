@@ -16,8 +16,9 @@ if str(PROJECT_PATH) not in sys.path:
 if str(STRATEGIES_PATH) not in sys.path:
     sys.path.append(str(STRATEGIES_PATH))
 
-# Import strategy function
+# Import strategy functions
 from moving_average_strategy import run_backtest
+from rsi_strategy import run_rsi_backtest
 
 # Import settings from config.py
 from config import (
@@ -27,31 +28,24 @@ from config import (
     POSITION_SIZE,
     TRADING_COST,
     REGIME_WINDOW,
+    STRATEGIES,
     TICKERS,
-    PARAMETER_SETS
+    MOVING_AVERAGE_PARAMETER_SETS,
+    RSI_PARAMETER_SETS
 )
 
 
-def run_batch_tests(results_path=None):
+def run_moving_average_tests(all_results):
     """
-    Run multiple moving-average strategy tests using settings from config.py.
+    Run moving-average strategy tests.
     """
-
-    if results_path is None:
-        results_path = DEFAULT_RESULTS_PATH
-    else:
-        results_path = Path(results_path)
-
-    results_path.mkdir(parents=True, exist_ok=True)
-
-    all_results = []
 
     for ticker in TICKERS:
-        for params in PARAMETER_SETS:
+        for params in MOVING_AVERAGE_PARAMETER_SETS:
             short_window = params["short_window"]
             long_window = params["long_window"]
 
-            print(f"Running {ticker} {short_window}/{long_window}...")
+            print(f"Running Moving Average Strategy: {ticker} {short_window}/{long_window}...")
 
             try:
                 data_result, summary_result = run_backtest(
@@ -66,15 +60,82 @@ def run_batch_tests(results_path=None):
                     initial_capital=INITIAL_CAPITAL
                 )
 
-                quant_strategy_row = summary_result[
+                strategy_row = summary_result[
                     summary_result["Strategy"] == "Quant Strategy"
                 ].copy()
 
-                all_results.append(quant_strategy_row)
+                strategy_row["Strategy Type"] = "moving_average"
+                all_results.append(strategy_row)
 
             except Exception as e:
-                print(f"Failed: {ticker} {short_window}/{long_window}")
+                print(f"Failed Moving Average: {ticker} {short_window}/{long_window}")
                 print(f"Error: {e}")
+
+
+def run_rsi_tests(all_results):
+    """
+    Run RSI strategy tests.
+    """
+
+    for ticker in TICKERS:
+        for params in RSI_PARAMETER_SETS:
+            rsi_window = params["rsi_window"]
+            oversold_level = params["oversold_level"]
+            overbought_level = params["overbought_level"]
+
+            print(
+                f"Running RSI Strategy: {ticker} "
+                f"RSI {rsi_window}, {oversold_level}/{overbought_level}..."
+            )
+
+            try:
+                data_result, summary_result = run_rsi_backtest(
+                    ticker=ticker,
+                    start_date=START_DATE,
+                    end_date=END_DATE,
+                    rsi_window=rsi_window,
+                    oversold_level=oversold_level,
+                    overbought_level=overbought_level,
+                    regime_window=REGIME_WINDOW,
+                    position_size=POSITION_SIZE,
+                    trading_cost=TRADING_COST,
+                    initial_capital=INITIAL_CAPITAL
+                )
+
+                strategy_row = summary_result[
+                    summary_result["Strategy"] == "RSI Strategy"
+                ].copy()
+
+                strategy_row["Strategy Type"] = "rsi"
+                all_results.append(strategy_row)
+
+            except Exception as e:
+                print(
+                    f"Failed RSI: {ticker} RSI {rsi_window}, "
+                    f"{oversold_level}/{overbought_level}"
+                )
+                print(f"Error: {e}")
+
+
+def run_batch_tests(results_path=None):
+    """
+    Run selected strategies using settings from config.py.
+    """
+
+    if results_path is None:
+        results_path = DEFAULT_RESULTS_PATH
+    else:
+        results_path = Path(results_path)
+
+    results_path.mkdir(parents=True, exist_ok=True)
+
+    all_results = []
+
+    if "moving_average" in STRATEGIES:
+        run_moving_average_tests(all_results)
+
+    if "rsi" in STRATEGIES:
+        run_rsi_tests(all_results)
 
     if not all_results:
         raise ValueError("No successful backtests were completed.")
@@ -92,7 +153,8 @@ def run_batch_tests(results_path=None):
     ]
 
     for col in columns_to_round:
-        combined_results[col] = combined_results[col].round(2)
+        if col in combined_results.columns:
+            combined_results[col] = combined_results[col].round(2)
 
     csv_file = results_path / "batch_test_results.csv"
     excel_file = results_path / "batch_test_results.xlsx"
