@@ -158,3 +158,23 @@ This project is for educational research only.
 Backtested results do not guarantee future performance. Real-world trading involves risk, including loss of capital. Trading costs, slippage, liquidity, taxes, execution delays, and emotional decision-making can affect live results.
 
 Do not use this project for live trading without further testing, validation, paper trading, and proper risk management.
+
+---
+
+## Demo Deployment Checklist
+
+Before deploying or demonstrating this dashboard publicly, review:
+
+`deployment_checklist.md`
+
+This checklist covers:
+
+- password handling
+- environment variables
+- Streamlit readiness
+- paper trading safety
+- database safety
+- public demo positioning
+- compliance caution
+
+The project should remain in research and paper trading mode unless proper broker testing, risk controls, and compliance review have been completed.
