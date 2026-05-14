@@ -7,17 +7,13 @@ import logging
 import shutil
 
 
-PROJECT_PATH = Path(r"C:\Users\yemi\OneDrive\Desktop\quant_trading_project")
+PROJECT_PATH = Path(r"C:\\Users\\yemi\\OneDrive\\Desktop\\quant_trading_project")
 RUNS_PATH = PROJECT_PATH / "runs"
 
 RUNS_PATH.mkdir(parents=True, exist_ok=True)
 
 
 def create_run_folders():
-    """
-    Create timestamped run folder with results, charts, and logs subfolders.
-    """
-
     timestamp = datetime.now().strftime("%Y-%m-%d_%H%M%S")
 
     run_path = RUNS_PATH / timestamp
@@ -33,10 +29,6 @@ def create_run_folders():
 
 
 def save_config_snapshot(run_path):
-    """
-    Save a copy of config.py inside the current run folder.
-    """
-
     config_file = PROJECT_PATH / "config.py"
     config_snapshot_file = run_path / "config_snapshot.py"
 
@@ -49,10 +41,6 @@ def save_config_snapshot(run_path):
 
 
 def setup_logger(logs_path):
-    """
-    Set up logging to both terminal and a run-specific log file.
-    """
-
     log_file = logs_path / "research_pipeline.log"
 
     logger = logging.getLogger("quant_research_pipeline")
@@ -79,10 +67,6 @@ def setup_logger(logs_path):
 
 
 def run_script(script_name, logger, extra_args=None):
-    """
-    Run a Python script inside the project folder and log the result.
-    """
-
     if extra_args is None:
         extra_args = []
 
@@ -123,10 +107,6 @@ def run_script(script_name, logger, extra_args=None):
 
 
 def run_pipeline():
-    """
-    Run the full quant research pipeline with isolated timestamped output folders.
-    """
-
     run_path, results_path, charts_path, logs_path = create_run_folders()
     logger, log_file = setup_logger(logs_path)
 
@@ -156,6 +136,12 @@ def run_pipeline():
                 "--charts-path", str(charts_path),
                 "--top-n", "3"
             ]
+        )
+
+        run_script(
+            "walk_forward_test.py",
+            logger,
+            extra_args=["--results-path", str(results_path)]
         )
 
         logger.info("=" * 60)

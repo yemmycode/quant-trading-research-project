@@ -1,12 +1,13 @@
 
 import sys
 from pathlib import Path
+import argparse
 import pandas as pd
 
 # Project paths
-PROJECT_PATH = Path(r"C:\Users\yemi\OneDrive\Desktop\quant_trading_project")
+PROJECT_PATH = Path(r"C:\\Users\\yemi\\OneDrive\\Desktop\\quant_trading_project")
 STRATEGIES_PATH = PROJECT_PATH / "strategies"
-RESULTS_PATH = PROJECT_PATH / "results"
+DEFAULT_RESULTS_PATH = PROJECT_PATH / "results"
 
 if str(PROJECT_PATH) not in sys.path:
     sys.path.append(str(PROJECT_PATH))
@@ -37,10 +38,6 @@ TEST_END = "2025-01-01"
 
 
 def run_all_strategies_for_period(start_date, end_date):
-    """
-    Run all configured strategies over a selected date period.
-    """
-
     all_results = []
 
     if "moving_average" in STRATEGIES:
@@ -52,7 +49,7 @@ def run_all_strategies_for_period(start_date, end_date):
                 print(f"Training/Test MA: {ticker} {short_window}/{long_window}")
 
                 try:
-                    data_result, summary_result = run_backtest(
+                    _, summary_result = run_backtest(
                         ticker=ticker,
                         start_date=start_date,
                         end_date=end_date,
@@ -90,7 +87,7 @@ def run_all_strategies_for_period(start_date, end_date):
                 )
 
                 try:
-                    data_result, summary_result = run_rsi_backtest(
+                    _, summary_result = run_rsi_backtest(
                         ticker=ticker,
                         start_date=start_date,
                         end_date=end_date,
@@ -140,10 +137,6 @@ def run_all_strategies_for_period(start_date, end_date):
 
 
 def rerun_selected_strategy(best_row, start_date, end_date):
-    """
-    Rerun one selected best strategy on a new testing period.
-    """
-
     ticker = best_row["Ticker"]
     strategy_type = best_row["Strategy Type"]
 
@@ -203,12 +196,8 @@ def rerun_selected_strategy(best_row, start_date, end_date):
 
 
 def run_walk_forward_test(results_path=None):
-    """
-    Run train/test walk-forward evaluation.
-    """
-
     if results_path is None:
-        results_path = RESULTS_PATH
+        results_path = DEFAULT_RESULTS_PATH
     else:
         results_path = Path(results_path)
 
@@ -260,4 +249,14 @@ def run_walk_forward_test(results_path=None):
 
 
 if __name__ == "__main__":
-    run_walk_forward_test()
+    parser = argparse.ArgumentParser(description="Run walk-forward quant strategy test.")
+    parser.add_argument(
+        "--results-path",
+        type=str,
+        default=None,
+        help="Optional folder where walk-forward result files should be saved."
+    )
+
+    args = parser.parse_args()
+
+    run_walk_forward_test(results_path=args.results_path)
