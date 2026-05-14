@@ -49,7 +49,7 @@ def run_all_strategies_for_period(start_date, end_date):
                 print(f"Training/Test MA: {ticker} {short_window}/{long_window}")
 
                 try:
-                    _, summary_result = run_backtest(
+                    _, summary_result, trade_log = run_backtest(
                         ticker=ticker,
                         start_date=start_date,
                         end_date=end_date,
@@ -87,7 +87,7 @@ def run_all_strategies_for_period(start_date, end_date):
                 )
 
                 try:
-                    _, summary_result = run_rsi_backtest(
+                    _, summary_result, trade_log = run_rsi_backtest(
                         ticker=ticker,
                         start_date=start_date,
                         end_date=end_date,
@@ -152,7 +152,7 @@ def rerun_selected_strategy(best_row, start_date, end_date):
         short_window = int(best_row["Short Window"])
         long_window = int(best_row["Long Window"])
 
-        data_result, summary_result = run_backtest(
+        data_result, summary_result, trade_log = run_backtest(
             ticker=ticker,
             start_date=start_date,
             end_date=end_date,
@@ -175,7 +175,7 @@ def rerun_selected_strategy(best_row, start_date, end_date):
         oversold_level = int(best_row["Oversold Level"])
         overbought_level = int(best_row["Overbought Level"])
 
-        data_result, summary_result = run_rsi_backtest(
+        data_result, summary_result, trade_log = run_rsi_backtest(
             ticker=ticker,
             start_date=start_date,
             end_date=end_date,

@@ -48,7 +48,7 @@ def run_moving_average_tests(all_results):
             print(f"Running Moving Average Strategy: {ticker} {short_window}/{long_window}...")
 
             try:
-                data_result, summary_result = run_backtest(
+                data_result, summary_result, trade_log = run_backtest(
                     ticker=ticker,
                     start_date=START_DATE,
                     end_date=END_DATE,
@@ -89,7 +89,7 @@ def run_rsi_tests(all_results):
             )
 
             try:
-                data_result, summary_result = run_rsi_backtest(
+                data_result, summary_result, trade_log = run_rsi_backtest(
                     ticker=ticker,
                     start_date=START_DATE,
                     end_date=END_DATE,

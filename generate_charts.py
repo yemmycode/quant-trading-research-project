@@ -58,7 +58,7 @@ def rerun_strategy(row):
         short_window = int(row["Short Window"])
         long_window = int(row["Long Window"])
 
-        data_result, summary_result = run_backtest(
+        data_result, summary_result, trade_log = run_backtest(
             ticker=ticker,
             start_date=START_DATE,
             end_date=END_DATE,
@@ -77,7 +77,7 @@ def rerun_strategy(row):
         oversold_level = int(row["Oversold Level"])
         overbought_level = int(row["Overbought Level"])
 
-        data_result, summary_result = run_rsi_backtest(
+        data_result, summary_result, trade_log = run_rsi_backtest(
             ticker=ticker,
             start_date=START_DATE,
             end_date=END_DATE,

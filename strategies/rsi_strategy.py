@@ -103,6 +103,58 @@ def calculate_performance_metrics(
     }
 
 
+
+
+def generate_trade_log(data):
+    """
+    Generate detailed trade log from strategy positions.
+    """
+
+    trades = []
+
+    in_trade = False
+    entry_date = None
+    entry_price = None
+
+    for current_date, row in data.iterrows():
+
+        position = row["Position"]
+        close_price = row["Close"]
+
+        # Entry
+        if not in_trade and position == 1:
+            in_trade = True
+            entry_date = current_date
+            entry_price = close_price
+
+        # Exit
+        elif in_trade and position == 0:
+            exit_date = current_date
+            exit_price = close_price
+
+            trade_return = (
+                (exit_price - entry_price) / entry_price
+            ) * 100
+
+            holding_days = (exit_date - entry_date).days
+
+            trades.append({
+                "Entry Date": entry_date,
+                "Exit Date": exit_date,
+                "Entry Price": entry_price,
+                "Exit Price": exit_price,
+                "Holding Days": holding_days,
+                "Trade Return (%)": trade_return,
+                "Win/Loss": "Win" if trade_return > 0 else "Loss"
+            })
+
+            in_trade = False
+
+    trade_log = pd.DataFrame(trades)
+
+    return trade_log
+
+
 def run_rsi_backtest(
     ticker="SPY",
     start_date="2018-01-01",
@@ -244,4 +296,8 @@ def run_rsi_backtest(
         }
     ])
 
-    return data, summary
+
+    trade_log = generate_trade_log(data)
+
+    return data, summary, trade_log
+
