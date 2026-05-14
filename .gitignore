@@ -39,3 +39,4 @@ data/*.sqlite
 
 # Environment variables
 .env
+# Local databases

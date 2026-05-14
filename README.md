@@ -178,3 +178,22 @@ This checklist covers:
 - compliance caution
 
 The project should remain in research and paper trading mode unless proper broker testing, risk controls, and compliance review have been completed.
+---
+
+## Streamlit Deployment Preparation
+
+This project includes Streamlit deployment preparation files:
+
+- `.streamlit/config.toml`
+- `requirements.txt`
+- `.env.example`
+
+Before deployment, configure the dashboard password as an environment variable:
+
+`DASHBOARD_PASSWORD=your-secure-password`
+
+Do not commit the real `.env` file to GitHub.
+
+The dashboard should remain in paper trading and research mode only.
+
+Live trading must remain disabled unless proper broker testing, safety controls, and compliance review have been completed.
