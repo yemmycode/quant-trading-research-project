@@ -33,6 +33,8 @@ from paper_trading import run_paper_trading_check
 from paper_broker import PaperBroker
 from risk_manager import create_risk_manager_from_config
 from order_manager import OrderManager
+from database import read_table
+from config import DASHBOARD_PASSWORD
 
 
 # ==============================
@@ -45,7 +47,56 @@ st.set_page_config(
     layout="wide"
 )
 
-st.title("Quant Trading Research Dashboard")
+
+# ==============================
+# Simple Dashboard Authentication
+# ==============================
+
+def check_dashboard_password():
+    """
+    Simple password gate for demo/private dashboard use.
+    """
+
+    if "dashboard_authenticated" not in st.session_state:
+        st.session_state.dashboard_authenticated = False
+
+    if st.session_state.dashboard_authenticated:
+        return True
+
+    st.title("Quant Trading Research Dashboard Login")
+    st.write("Enter the dashboard password to continue.")
+
+    password_input = st.text_input(
+        "Password",
+        type="password"
+    )
+
+    login_button = st.button("Login")
+
+    if login_button:
+        if password_input == DASHBOARD_PASSWORD:
+            st.session_state.dashboard_authenticated = True
+            st.success("Login successful. Reloading dashboard...")
+            st.rerun()
+        else:
+            st.error("Incorrect password.")
+
+    return False
+
+
+if not check_dashboard_password():
+    st.stop()
+
+
+logout_col1, logout_col2 = st.columns([5, 1])
+
+with logout_col1:
+    st.title("Quant Trading Research Dashboard")
+
+with logout_col2:
+    if st.button("Logout"):
+        st.session_state.dashboard_authenticated = False
+        st.rerun()
 st.write(
     "Interactive dashboard for testing moving-average and RSI-based quant strategies."
 )

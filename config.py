@@ -1,3 +1,8 @@
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
 
 # ==============================
 # Quant Trading Project Settings
@@ -85,3 +90,12 @@ ALLOWED_TICKERS = [
 
 # Emergency stop blocks all future trading checks.
 EMERGENCY_STOP = False
+
+
+# ==============================
+# Dashboard Authentication
+# ==============================
+
+# Simple demo password for Streamlit dashboard access.
+# For production, use environment variables or a proper authentication system.
+DASHBOARD_PASSWORD = os.getenv("DASHBOARD_PASSWORD", "demo-password")

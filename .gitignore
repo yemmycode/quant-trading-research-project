@@ -36,3 +36,6 @@ charts/
 # Local database
 data/*.db
 data/*.sqlite
+
+# Environment variables
+.env
