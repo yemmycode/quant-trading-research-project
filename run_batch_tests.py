@@ -146,9 +146,17 @@ def run_batch_tests(results_path=None):
         "Position Size",
         "Trading Cost",
         "Total Return (%)",
+        "Annual Return (%)",
         "Volatility (%)",
         "Sharpe Ratio",
+        "Sortino Ratio",
+        "Calmar Ratio",
         "Max Drawdown (%)",
+        "Win Rate (%)",
+        "Average Win (%)",
+        "Average Loss (%)",
+        "Profit Factor",
+        "Recovery Factor",
         "Final Value (R)"
     ]
 

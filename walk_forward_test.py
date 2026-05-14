@@ -123,9 +123,17 @@ def run_all_strategies_for_period(start_date, end_date):
 
     numeric_cols = [
         "Total Return (%)",
+        "Annual Return (%)",
         "Volatility (%)",
         "Sharpe Ratio",
+        "Sortino Ratio",
+        "Calmar Ratio",
         "Max Drawdown (%)",
+        "Win Rate (%)",
+        "Average Win (%)",
+        "Average Loss (%)",
+        "Profit Factor",
+        "Recovery Factor",
         "Final Value (R)"
     ]
 
