@@ -13,6 +13,7 @@ import matplotlib.pyplot as plt
 
 PROJECT_PATH = Path(__file__).resolve().parent
 STRATEGIES_PATH = PROJECT_PATH / "strategies"
+BROKERS_PATH = PROJECT_PATH / "brokers"
 
 if str(PROJECT_PATH) not in sys.path:
     sys.path.append(str(PROJECT_PATH))
@@ -20,11 +21,18 @@ if str(PROJECT_PATH) not in sys.path:
 if str(STRATEGIES_PATH) not in sys.path:
     sys.path.append(str(STRATEGIES_PATH))
 
+if str(BROKERS_PATH) not in sys.path:
+    sys.path.append(str(BROKERS_PATH))
+
 
 from moving_average_strategy import run_backtest
 from rsi_strategy import run_rsi_backtest
 
 from paper_trading import run_paper_trading_check
+
+from paper_broker import PaperBroker
+from risk_manager import create_risk_manager_from_config
+from order_manager import OrderManager
 
 
 # ==============================
@@ -427,3 +435,137 @@ if history_file.exists():
     )
 else:
     st.info("No paper trading history found yet. Run a paper trading check first.")
+
+
+# ==============================
+# Manual Confirmation Order Ticket
+# ==============================
+
+st.markdown("---")
+st.header("Manual Confirmation Order Ticket")
+st.write(
+    "This section submits simulated orders to the Paper Broker only. "
+    "It does not place live trades."
+)
+
+if "paper_broker" not in st.session_state:
+    st.session_state.paper_broker = PaperBroker(initial_cash=10000)
+
+if "risk_manager" not in st.session_state:
+    st.session_state.risk_manager = create_risk_manager_from_config()
+
+if "order_manager" not in st.session_state:
+    st.session_state.order_manager = OrderManager(
+        broker=st.session_state.paper_broker,
+        risk_manager=st.session_state.risk_manager,
+        results_path=PROJECT_PATH / "results"
+    )
+
+order_col1, order_col2, order_col3 = st.columns(3)
+
+with order_col1:
+    order_ticker = st.text_input(
+        "Order Ticker",
+        value="SPY",
+        key="order_ticker_input"
+    ).upper()
+
+with order_col2:
+    order_side = st.selectbox(
+        "Order Side",
+        ["buy", "sell"],
+        key="order_side_select"
+    )
+
+with order_col3:
+    order_position_size = st.slider(
+        "Order Position Size",
+        min_value=0.01,
+        max_value=0.25,
+        value=0.05,
+        step=0.01,
+        key="order_position_size_slider"
+    )
+
+st.subheader("Paper Broker Account")
+
+account_info = st.session_state.paper_broker.get_account_info()
+st.json(account_info)
+
+positions = st.session_state.paper_broker.get_positions()
+
+if positions:
+    st.write("Current Paper Positions")
+    st.dataframe(pd.DataFrame(positions), use_container_width=True)
+else:
+    st.info("No current paper positions.")
+
+st.subheader("Order Preview")
+
+try:
+    latest_price = st.session_state.paper_broker.get_latest_price(order_ticker)
+    account_equity = account_info["equity"]
+    estimated_capital = account_equity * order_position_size
+    estimated_quantity = int(estimated_capital // latest_price)
+
+    preview_data = {
+        "Ticker": order_ticker,
+        "Side": order_side,
+        "Latest Price": round(latest_price, 2),
+        "Account Equity": round(account_equity, 2),
+        "Requested Position Size": f"{order_position_size:.2%}",
+        "Estimated Capital": round(estimated_capital, 2),
+        "Estimated Quantity": estimated_quantity,
+        "Broker Mode": "Paper Broker Only"
+    }
+
+    st.json(preview_data)
+
+except Exception as e:
+    st.error("Could not generate order preview.")
+    st.exception(e)
+    estimated_quantity = 0
+
+manual_confirmation = st.checkbox(
+    "I confirm this simulated paper order ticket.",
+    key="manual_order_confirmation"
+)
+
+submit_order_button = st.button("Submit Simulated Paper Order")
+
+if submit_order_button:
+    try:
+        result = st.session_state.order_manager.submit_managed_order(
+            ticker=order_ticker,
+            side=order_side,
+            proposed_position_size=order_position_size,
+            current_daily_loss=0.00,
+            current_weekly_loss=0.00,
+            current_total_drawdown=0.00,
+            manual_confirmation_given=manual_confirmation,
+            live_order=False
+        )
+
+        if result["approved"] and result["status"] == "filled":
+            st.success("Simulated paper order filled.")
+        elif result["approved"]:
+            st.warning(f"Order approved but status is: {result['status']}")
+        else:
+            st.error("Order blocked by risk manager.")
+
+        st.write("Order Result")
+        st.json(result)
+
+    except Exception as e:
+        st.error("Order submission failed.")
+        st.exception(e)
+
+st.subheader("Recent Order Log")
+
+order_log_file = PROJECT_PATH / "results" / "order_log.csv"
+
+if order_log_file.exists():
+    order_log = pd.read_csv(order_log_file)
+    st.dataframe(order_log.tail(20), use_container_width=True)
+else:
+    st.info("No order log found yet.")
