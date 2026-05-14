@@ -437,6 +437,35 @@ else:
     st.info("No paper trading history found yet. Run a paper trading check first.")
 
 
+
+
+# ==============================
+# Emergency Stop Control
+# ==============================
+
+st.markdown("---")
+st.header("Emergency Stop Control")
+st.write(
+    "Emergency stop blocks all simulated paper order submissions from the dashboard."
+)
+
+if "dashboard_emergency_stop" not in st.session_state:
+    st.session_state.dashboard_emergency_stop = False
+
+emergency_stop_value = st.toggle(
+    "Activate Emergency Stop",
+    value=st.session_state.dashboard_emergency_stop,
+    key="emergency_stop_toggle"
+)
+
+st.session_state.dashboard_emergency_stop = emergency_stop_value
+
+if st.session_state.dashboard_emergency_stop:
+    st.error("EMERGENCY STOP IS ACTIVE: all simulated paper orders are blocked.")
+else:
+    st.success("Emergency stop is inactive.")
+
+
 # ==============================
 # Manual Confirmation Order Ticket
 # ==============================
@@ -535,6 +564,10 @@ submit_order_button = st.button("Submit Simulated Paper Order")
 
 if submit_order_button:
     try:
+        if st.session_state.get("dashboard_emergency_stop", False):
+            st.error("Order blocked: dashboard emergency stop is active.")
+            st.stop()
+
         result = st.session_state.order_manager.submit_managed_order(
             ticker=order_ticker,
             side=order_side,
