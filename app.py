@@ -24,6 +24,8 @@ if str(STRATEGIES_PATH) not in sys.path:
 from moving_average_strategy import run_backtest
 from rsi_strategy import run_rsi_backtest
 
+from paper_trading import run_paper_trading_check
+
 
 # ==============================
 # Page Setup
@@ -333,3 +335,70 @@ if run_button:
 
 else:
     st.info("Use the sidebar settings, then click 'Run Backtest'.")
+
+
+# ==============================
+# Paper Trading Mode
+# ==============================
+
+st.markdown("---")
+st.header("Paper Trading Mode")
+st.write(
+    "This section checks the latest strategy signal without placing any real trades."
+)
+
+paper_col1, paper_col2 = st.columns(2)
+
+with paper_col1:
+    paper_strategy = st.selectbox(
+        "Paper Trading Strategy",
+        ["moving_average", "rsi"]
+    )
+
+with paper_col2:
+    paper_ticker = st.text_input(
+        "Paper Trading Ticker",
+        value="SPY"
+    ).upper()
+
+run_paper_button = st.button("Run Paper Trading Check")
+
+if run_paper_button:
+    try:
+        with st.spinner("Running paper trading check..."):
+            paper_status, paper_data, paper_summary, paper_trade_log = run_paper_trading_check(
+                strategy_type=paper_strategy,
+                ticker=paper_ticker
+            )
+
+        st.success("Paper trading check completed.")
+
+        st.subheader("Latest Paper Trading Status")
+        st.dataframe(paper_status, use_container_width=True)
+
+        latest_status = paper_status.iloc[0]
+
+        pcol1, pcol2, pcol3, pcol4 = st.columns(4)
+
+        pcol1.metric("Latest Close", f"{latest_status['Latest Close']:.2f}")
+        pcol2.metric("Latest Signal", int(latest_status["Latest Signal"]))
+        pcol3.metric("Latest Position", int(latest_status["Latest Position"]))
+        pcol4.metric(
+            "Paper Value",
+            f"R {latest_status['Paper Portfolio Value']:,.2f}"
+        )
+
+        st.info(f"Recommendation: {latest_status['Recommendation']}")
+
+        st.subheader("Paper Trading Equity Curve")
+        st.pyplot(plot_equity_curve(paper_data, latest_status["Initial Capital"]))
+
+        st.subheader("Paper Trading Trade Log")
+        if paper_trade_log.empty:
+            st.info("No completed paper trades found.")
+        else:
+            st.dataframe(paper_trade_log, use_container_width=True)
+
+    except Exception as e:
+        st.error("Paper trading check failed.")
+        st.exception(e)
