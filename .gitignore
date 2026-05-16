@@ -40,3 +40,4 @@ data/*.sqlite
 # Environment variables
 .env
 # Local databases
+.streamlit/secrets.toml

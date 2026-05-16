@@ -197,3 +197,20 @@ Do not commit the real `.env` file to GitHub.
 The dashboard should remain in paper trading and research mode only.
 
 Live trading must remain disabled unless proper broker testing, safety controls, and compliance review have been completed.
+---
+
+## Streamlit Secrets
+
+The dashboard supports Streamlit secrets for deployment.
+
+For local testing, create:
+
+`.streamlit/secrets.toml`
+
+Example:
+
+`DASHBOARD_PASSWORD = "your-password"`
+
+Do not commit `.streamlit/secrets.toml` to GitHub.
+
+For Streamlit Cloud, add the same value inside the app's Secrets settings.

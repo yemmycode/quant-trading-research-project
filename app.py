@@ -48,6 +48,26 @@ st.set_page_config(
 )
 
 
+
+# ==============================
+# Secrets Helper
+# ==============================
+
+def get_dashboard_password():
+    """
+    Get dashboard password from Streamlit secrets first,
+    then environment/config fallback.
+    """
+
+    try:
+        if "DASHBOARD_PASSWORD" in st.secrets:
+            return st.secrets["DASHBOARD_PASSWORD"]
+    except Exception:
+        pass
+
+    return DASHBOARD_PASSWORD
+
+
 # ==============================
 # Simple Dashboard Authentication
 # ==============================
@@ -74,7 +94,7 @@ def check_dashboard_password():
     login_button = st.button("Login")
 
     if login_button:
-        if password_input == DASHBOARD_PASSWORD:
+        if password_input.strip() == get_dashboard_password().strip():
             st.session_state.dashboard_authenticated = True
             st.success("Login successful. Reloading dashboard...")
             st.rerun()
