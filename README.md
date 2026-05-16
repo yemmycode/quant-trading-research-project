@@ -214,3 +214,20 @@ Example:
 Do not commit `.streamlit/secrets.toml` to GitHub.
 
 For Streamlit Cloud, add the same value inside the app's Secrets settings.
+---
+
+## Streamlit Cloud Deployment
+
+This project can be deployed from GitHub to Streamlit Community Cloud.
+
+Deployment settings:
+
+- Branch: `main`
+- Main file path: `app.py`
+- Secrets: set `DASHBOARD_PASSWORD` in Streamlit Cloud app settings
+
+Before deployment, review:
+
+`streamlit_cloud_deployment.md`
+
+The dashboard must remain in research and paper trading mode only.

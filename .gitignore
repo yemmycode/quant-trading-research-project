@@ -41,3 +41,6 @@ data/*.sqlite
 .env
 # Local databases
 .streamlit/secrets.toml
+# Secrets
+# Generated outputs
+# Python/cache
