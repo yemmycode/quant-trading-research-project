@@ -151,3 +151,54 @@ ALLOWED_TICKERS = ["SPY", "QQQ"]
 
 # Emergency stop blocks all future trading checks.
 EMERGENCY_STOP = False
+
+# ==============================
+# IBKR Broker Configuration
+# ==============================
+
+# IBKR connection settings are read from environment variables.
+# Local: use .env
+# Streamlit Cloud: use Secrets
+
+IBKR_HOST = os.getenv("IBKR_HOST", "127.0.0.1")
+IBKR_PORT = int(os.getenv("IBKR_PORT", "7497"))
+IBKR_CLIENT_ID = int(os.getenv("IBKR_CLIENT_ID", "1"))
+IBKR_ACCOUNT_ID = os.getenv("IBKR_ACCOUNT_ID", "")
+IBKR_TRADING_MODE = os.getenv("IBKR_TRADING_MODE", "paper")
+IBKR_READ_ONLY = os.getenv("IBKR_READ_ONLY", "true").lower() == "true"
+
+# Safety default: IBKR orders are disabled until explicitly enabled later.
+IBKR_ENABLE_ORDERS = os.getenv("IBKR_ENABLE_ORDERS", "false").lower() == "true"
+
+def validate_ibkr_settings():
+    """
+    Validate IBKR configuration settings.
+    This does not connect to IBKR.
+    """
+
+    valid_modes = ["paper", "live"]
+
+    if IBKR_TRADING_MODE not in valid_modes:
+        raise ValueError(
+            f"Invalid IBKR_TRADING_MODE: {IBKR_TRADING_MODE}. "
+            f"Valid modes: {valid_modes}"
+        )
+
+    if not isinstance(IBKR_PORT, int):
+        raise TypeError("IBKR_PORT must be an integer.")
+
+    if not isinstance(IBKR_CLIENT_ID, int):
+        raise TypeError("IBKR_CLIENT_ID must be an integer.")
+
+    if IBKR_TRADING_MODE == "live" and not ALLOW_LIVE_TRADING:
+        raise ValueError(
+            "IBKR live mode is blocked because ALLOW_LIVE_TRADING is False."
+        )
+
+    if IBKR_TRADING_MODE == "live" and IBKR_READ_ONLY:
+        raise ValueError(
+            "IBKR live mode is selected but IBKR_READ_ONLY is True. "
+            "Live trading should only be enabled deliberately after readiness checks."
+        )
+
+    return True

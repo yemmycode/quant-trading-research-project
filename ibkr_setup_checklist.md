@@ -26,10 +26,10 @@
 
 ## Project Secrets
 
-- [ ] Add IBKR_HOST to .env locally
-- [ ] Add IBKR_PORT to .env locally
-- [ ] Add IBKR_CLIENT_ID to .env locally
-- [ ] Add IBKR_TRADING_MODE to .env locally
+- [x] Add IBKR_HOST to .env locally
+- [x] Add IBKR_PORT to .env locally
+- [x] Add IBKR_CLIENT_ID to .env locally
+- [x] Add IBKR_TRADING_MODE to .env locally
 - [ ] Do not commit .env
 
 ## First Connection Test
