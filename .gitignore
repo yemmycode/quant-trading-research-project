@@ -32,15 +32,3 @@ charts/
 # IDE files
 .idea/
 .vscode/
-
-# Local database
-data/*.db
-data/*.sqlite
-
-# Environment variables
-.env
-# Local databases
-.streamlit/secrets.toml
-# Secrets
-# Generated outputs
-# Python/cache

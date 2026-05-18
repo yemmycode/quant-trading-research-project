@@ -31,7 +31,7 @@ Total Return: 65.48%
 Volatility: 8.29%
 Sharpe Ratio: 1.02
 Max Drawdown: -11.53%
-Final Value: R16548.40
+Final Value: R16548.39
 
 BEST STRATEGY BY FINAL VALUE
 ----------------------------
@@ -55,7 +55,7 @@ Total Return: 24.01%
 Volatility: 5.43%
 Sharpe Ratio: 0.67
 Max Drawdown: -7.88%
-Final Value: R12401.25
+Final Value: R12401.24
 
 INTERPRETATION
 --------------

@@ -3,5 +3,3 @@ numpy
 matplotlib
 yfinance
 openpyxl
-streamlit
-python-dotenv
