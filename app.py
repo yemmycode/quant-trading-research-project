@@ -35,6 +35,7 @@ from breakout_strategy import run_breakout_backtest
 from paper_trading import run_paper_trading_check
 
 from paper_broker import PaperBroker
+from broker_factory import get_broker, list_available_brokers
 from risk_manager import create_risk_manager_from_config
 from order_manager import OrderManager
 from database import read_table, get_database_status
@@ -151,6 +152,13 @@ if EXECUTION_MODE == "LIVE_MANUAL" and ALLOW_LIVE_TRADING:
     st.error("LIVE MANUAL MODE IS ENABLED. Real broker orders may be possible if broker integration is active.")
 else:
     st.info("Live trading is disabled. The system is operating in research or paper/sandbox-safe mode.")
+
+
+st.subheader("Broker Readiness")
+
+broker_status_data = pd.DataFrame(list_available_brokers())
+st.dataframe(broker_status_data, use_container_width=True)
+
 
 
 
