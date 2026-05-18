@@ -697,6 +697,332 @@ else:
 
 
 
+
+
+# ==============================
+# Strategy Comparison Dashboard
+# ==============================
+
+st.markdown("---")
+st.header("Strategy Comparison Dashboard")
+st.write(
+    "Compare multiple strategies on the same ticker, date range, capital, "
+    "position size, trading cost, and regime filter."
+)
+
+comparison_col1, comparison_col2, comparison_col3 = st.columns(3)
+
+with comparison_col1:
+    comparison_ticker = st.text_input(
+        "Comparison Ticker",
+        value="SPY",
+        key="comparison_ticker"
+    ).upper()
+
+with comparison_col2:
+    comparison_start_date = st.text_input(
+        "Comparison Start Date",
+        value="2018-01-01",
+        key="comparison_start_date"
+    )
+
+with comparison_col3:
+    comparison_end_date = st.text_input(
+        "Comparison End Date",
+        value="2025-01-01",
+        key="comparison_end_date"
+    )
+
+comparison_col4, comparison_col5, comparison_col6 = st.columns(3)
+
+with comparison_col4:
+    comparison_initial_capital = st.number_input(
+        "Comparison Initial Capital",
+        min_value=1000,
+        max_value=10000000,
+        value=10000,
+        step=1000,
+        key="comparison_initial_capital"
+    )
+
+with comparison_col5:
+    comparison_position_size = st.slider(
+        "Comparison Position Size",
+        min_value=0.10,
+        max_value=1.00,
+        value=0.50,
+        step=0.05,
+        key="comparison_position_size"
+    )
+
+with comparison_col6:
+    comparison_trading_cost = st.number_input(
+        "Comparison Trading Cost",
+        min_value=0.0,
+        max_value=0.05,
+        value=0.001,
+        step=0.001,
+        format="%.4f",
+        key="comparison_trading_cost"
+    )
+
+comparison_regime_window = st.number_input(
+    "Comparison Regime Window",
+    min_value=50,
+    max_value=300,
+    value=200,
+    step=10,
+    key="comparison_regime_window"
+)
+
+selected_comparison_strategies = st.multiselect(
+    "Select Strategies to Compare",
+    [
+        "Moving Average",
+        "RSI",
+        "Bollinger Bands",
+        "Momentum",
+        "Breakout"
+    ],
+    default=[
+        "Moving Average",
+        "RSI",
+        "Bollinger Bands",
+        "Momentum",
+        "Breakout"
+    ]
+)
+
+run_comparison_button = st.button("Run Strategy Comparison")
+
+if run_comparison_button:
+    if not selected_comparison_strategies:
+        st.warning("Please select at least one strategy to compare.")
+    else:
+        comparison_results = []
+        comparison_data = {}
+
+        with st.spinner("Running strategy comparison..."):
+
+            for selected_strategy in selected_comparison_strategies:
+                try:
+                    if selected_strategy == "Moving Average":
+                        comparison_result_data, comparison_summary, comparison_trade_log = run_backtest(
+                            ticker=comparison_ticker,
+                            start_date=comparison_start_date,
+                            end_date=comparison_end_date,
+                            short_window=20,
+                            long_window=50,
+                            regime_window=int(comparison_regime_window),
+                            position_size=float(comparison_position_size),
+                            trading_cost=float(comparison_trading_cost),
+                            initial_capital=float(comparison_initial_capital)
+                        )
+
+                        strategy_row = comparison_summary[
+                            comparison_summary["Strategy"] == "Quant Strategy"
+                        ].copy()
+
+                        strategy_label = "Moving Average 20/50"
+
+                    elif selected_strategy == "RSI":
+                        comparison_result_data, comparison_summary, comparison_trade_log = run_rsi_backtest(
+                            ticker=comparison_ticker,
+                            start_date=comparison_start_date,
+                            end_date=comparison_end_date,
+                            rsi_window=14,
+                            oversold_level=30,
+                            overbought_level=70,
+                            regime_window=int(comparison_regime_window),
+                            position_size=float(comparison_position_size),
+                            trading_cost=float(comparison_trading_cost),
+                            initial_capital=float(comparison_initial_capital)
+                        )
+
+                        strategy_row = comparison_summary[
+                            comparison_summary["Strategy"] == "RSI Strategy"
+                        ].copy()
+
+                        strategy_label = "RSI 14 / 30-70"
+
+                    elif selected_strategy == "Bollinger Bands":
+                        comparison_result_data, comparison_summary, comparison_trade_log = run_bollinger_backtest(
+                            ticker=comparison_ticker,
+                            start_date=comparison_start_date,
+                            end_date=comparison_end_date,
+                            window=20,
+                            num_std=2,
+                            regime_window=int(comparison_regime_window),
+                            position_size=float(comparison_position_size),
+                            trading_cost=float(comparison_trading_cost),
+                            initial_capital=float(comparison_initial_capital)
+                        )
+
+                        strategy_row = comparison_summary[
+                            comparison_summary["Strategy"] == "Bollinger Bands Strategy"
+                        ].copy()
+
+                        strategy_label = "Bollinger Bands 20 / 2 std"
+
+                    elif selected_strategy == "Momentum":
+                        comparison_result_data, comparison_summary, comparison_trade_log = run_momentum_backtest(
+                            ticker=comparison_ticker,
+                            start_date=comparison_start_date,
+                            end_date=comparison_end_date,
+                            momentum_window=60,
+                            regime_window=int(comparison_regime_window),
+                            position_size=float(comparison_position_size),
+                            trading_cost=float(comparison_trading_cost),
+                            initial_capital=float(comparison_initial_capital)
+                        )
+
+                        strategy_row = comparison_summary[
+                            comparison_summary["Strategy"] == "Momentum Strategy"
+                        ].copy()
+
+                        strategy_label = "Momentum 60"
+
+                    elif selected_strategy == "Breakout":
+                        comparison_result_data, comparison_summary, comparison_trade_log = run_breakout_backtest(
+                            ticker=comparison_ticker,
+                            start_date=comparison_start_date,
+                            end_date=comparison_end_date,
+                            breakout_window=50,
+                            exit_window=20,
+                            regime_window=int(comparison_regime_window),
+                            position_size=float(comparison_position_size),
+                            trading_cost=float(comparison_trading_cost),
+                            initial_capital=float(comparison_initial_capital)
+                        )
+
+                        strategy_row = comparison_summary[
+                            comparison_summary["Strategy"] == "Breakout Strategy"
+                        ].copy()
+
+                        strategy_label = "Breakout 50 / Exit 20"
+
+                    else:
+                        continue
+
+                    if not strategy_row.empty:
+                        strategy_row["Comparison Label"] = strategy_label
+                        comparison_results.append(strategy_row)
+
+                        comparison_data[strategy_label] = comparison_result_data
+
+                except Exception as e:
+                    st.warning(f"{selected_strategy} failed: {e}")
+
+        if not comparison_results:
+            st.error("No strategy comparison results were generated.")
+        else:
+            comparison_table = pd.concat(comparison_results, ignore_index=True)
+
+            numeric_columns = comparison_table.select_dtypes(include="number").columns
+            comparison_table[numeric_columns] = comparison_table[numeric_columns].round(2)
+
+            st.subheader("Strategy Comparison Table")
+
+            key_columns = [
+                "Comparison Label",
+                "Strategy",
+                "Ticker",
+                "Total Return (%)",
+                "Annual Return (%)",
+                "Volatility (%)",
+                "Sharpe Ratio",
+                "Sortino Ratio",
+                "Calmar Ratio",
+                "Max Drawdown (%)",
+                "Win Rate (%)",
+                "Profit Factor",
+                "Recovery Factor",
+                "Final Value (R)",
+                "Buy Trades",
+                "Sell Trades"
+            ]
+
+            existing_key_columns = [
+                col for col in key_columns if col in comparison_table.columns
+            ]
+
+            comparison_table_display = comparison_table[existing_key_columns].sort_values(
+                by="Sharpe Ratio",
+                ascending=False
+            )
+
+            st.dataframe(comparison_table_display, use_container_width=True)
+
+            st.subheader("Strategy Ranking")
+
+            best_strategy = comparison_table_display.iloc[0]
+
+            rank_col1, rank_col2, rank_col3, rank_col4 = st.columns(4)
+
+            rank_col1.metric(
+                "Best Strategy",
+                best_strategy["Comparison Label"]
+            )
+
+            rank_col2.metric(
+                "Best Sharpe",
+                f"{best_strategy['Sharpe Ratio']:.2f}"
+            )
+
+            rank_col3.metric(
+                "Best Return",
+                f"{best_strategy['Total Return (%)']:.2f}%"
+            )
+
+            rank_col4.metric(
+                "Max Drawdown",
+                f"{best_strategy['Max Drawdown (%)']:.2f}%"
+            )
+
+            st.subheader("Equity Curve Comparison")
+
+            fig, ax = plt.subplots(figsize=(12, 6))
+
+            for label, strategy_data in comparison_data.items():
+                equity_curve = comparison_initial_capital * strategy_data["Strategy_Growth"]
+                ax.plot(equity_curve, label=label)
+
+            ax.set_title(f"Strategy Equity Curve Comparison - {comparison_ticker}")
+            ax.set_xlabel("Date")
+            ax.set_ylabel("Portfolio Value")
+            ax.legend()
+            ax.grid(True)
+
+            st.pyplot(fig)
+
+            st.subheader("Drawdown Comparison")
+
+            fig_drawdown, ax_drawdown = plt.subplots(figsize=(12, 6))
+
+            for label, strategy_data in comparison_data.items():
+                ax_drawdown.plot(
+                    strategy_data["Strategy_Drawdown"],
+                    label=label
+                )
+
+            ax_drawdown.set_title(f"Strategy Drawdown Comparison - {comparison_ticker}")
+            ax_drawdown.set_xlabel("Date")
+            ax_drawdown.set_ylabel("Drawdown")
+            ax_drawdown.legend()
+            ax_drawdown.grid(True)
+
+            st.pyplot(fig_drawdown)
+
+            comparison_csv = comparison_table_display.to_csv(index=False).encode("utf-8")
+
+            st.download_button(
+                label="Download Strategy Comparison CSV",
+                data=comparison_csv,
+                file_name=f"{comparison_ticker}_strategy_comparison.csv",
+                mime="text/csv"
+            )
+
+
 # ==============================
 # Portfolio Overview
 # ==============================
