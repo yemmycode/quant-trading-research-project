@@ -20,8 +20,8 @@
 
 ## Python Environment
 
-- [ ] Install IBKR Python package or ib_insync
-- [ ] Confirm package imports successfully
+- [x] Install IBKR Python package or ib_insync
+- [x] Confirm package imports successfully
 - [ ] Confirm project requirements.txt is updated
 
 ## Project Secrets
