@@ -27,6 +27,10 @@ if str(BROKERS_PATH) not in sys.path:
 
 from moving_average_strategy import run_backtest
 from rsi_strategy import run_rsi_backtest
+from bollinger_bands_strategy import run_bollinger_backtest
+from momentum_strategy import run_momentum_backtest
+from breakout_strategy import run_breakout_backtest
+
 
 from paper_trading import run_paper_trading_check
 
@@ -135,7 +139,7 @@ st.sidebar.header("Backtest Settings")
 
 strategy_type = st.sidebar.selectbox(
     "Select Strategy",
-    ["Moving Average", "RSI"]
+    ["Moving Average", "RSI", "Bollinger Bands", "Momentum", "Breakout"]
 )
 
 ticker = st.sidebar.text_input(
@@ -206,7 +210,7 @@ if strategy_type == "Moving Average":
         step=10
     )
 
-else:
+elif strategy_type == "RSI":
     st.sidebar.subheader("RSI Parameters")
 
     rsi_window = st.sidebar.number_input(
@@ -231,6 +235,55 @@ else:
         max_value=95,
         value=70,
         step=5
+    )
+
+elif strategy_type == "Bollinger Bands":
+    st.sidebar.subheader("Bollinger Bands Parameters")
+
+    bollinger_window = st.sidebar.number_input(
+        "Bollinger Window",
+        min_value=10,
+        max_value=100,
+        value=20,
+        step=5
+    )
+
+    bollinger_std = st.sidebar.number_input(
+        "Number of Standard Deviations",
+        min_value=1.0,
+        max_value=4.0,
+        value=2.0,
+        step=0.5
+    )
+
+elif strategy_type == "Momentum":
+    st.sidebar.subheader("Momentum Parameters")
+
+    momentum_window = st.sidebar.number_input(
+        "Momentum Window",
+        min_value=10,
+        max_value=200,
+        value=60,
+        step=10
+    )
+
+elif strategy_type == "Breakout":
+    st.sidebar.subheader("Breakout Parameters")
+
+    breakout_window = st.sidebar.number_input(
+        "Breakout Window",
+        min_value=20,
+        max_value=250,
+        value=50,
+        step=10
+    )
+
+    exit_window = st.sidebar.number_input(
+        "Exit Window",
+        min_value=10,
+        max_value=150,
+        value=20,
+        step=10
     )
 
 
@@ -311,7 +364,7 @@ if run_button:
                     initial_capital=float(initial_capital)
                 )
 
-            else:
+            elif strategy_type == "RSI":
                 data, summary, trade_log = run_rsi_backtest(
                     ticker=ticker,
                     start_date=start_date,
@@ -324,6 +377,47 @@ if run_button:
                     trading_cost=float(trading_cost),
                     initial_capital=float(initial_capital)
                 )
+
+            elif strategy_type == "Bollinger Bands":
+                data, summary, trade_log = run_bollinger_backtest(
+                    ticker=ticker,
+                    start_date=start_date,
+                    end_date=end_date,
+                    window=int(bollinger_window),
+                    num_std=float(bollinger_std),
+                    regime_window=int(regime_window),
+                    position_size=float(position_size),
+                    trading_cost=float(trading_cost),
+                    initial_capital=float(initial_capital)
+                )
+
+            elif strategy_type == "Momentum":
+                data, summary, trade_log = run_momentum_backtest(
+                    ticker=ticker,
+                    start_date=start_date,
+                    end_date=end_date,
+                    momentum_window=int(momentum_window),
+                    regime_window=int(regime_window),
+                    position_size=float(position_size),
+                    trading_cost=float(trading_cost),
+                    initial_capital=float(initial_capital)
+                )
+
+            elif strategy_type == "Breakout":
+                data, summary, trade_log = run_breakout_backtest(
+                    ticker=ticker,
+                    start_date=start_date,
+                    end_date=end_date,
+                    breakout_window=int(breakout_window),
+                    exit_window=int(exit_window),
+                    regime_window=int(regime_window),
+                    position_size=float(position_size),
+                    trading_cost=float(trading_cost),
+                    initial_capital=float(initial_capital)
+                )
+
+            else:
+                raise ValueError(f"Unknown strategy type: {strategy_type}")
 
         st.success("Backtest completed successfully.")
 
@@ -408,33 +502,46 @@ if run_button:
 
         st.subheader("Download Strategy Report")
 
+        strategy_settings = {
+            "Strategy Type": strategy_type,
+            "Ticker": ticker,
+            "Start Date": start_date,
+            "End Date": end_date,
+            "Initial Capital": initial_capital,
+            "Position Size": position_size,
+            "Trading Cost": trading_cost,
+            "Regime Window": regime_window
+        }
+
         if strategy_type == "Moving Average":
-            strategy_settings = {
-                "Strategy Type": strategy_type,
-                "Ticker": ticker,
-                "Start Date": start_date,
-                "End Date": end_date,
-                "Initial Capital": initial_capital,
-                "Position Size": position_size,
-                "Trading Cost": trading_cost,
-                "Regime Window": regime_window,
+            strategy_settings.update({
                 "Short Window": short_window,
                 "Long Window": long_window
-            }
-        else:
-            strategy_settings = {
-                "Strategy Type": strategy_type,
-                "Ticker": ticker,
-                "Start Date": start_date,
-                "End Date": end_date,
-                "Initial Capital": initial_capital,
-                "Position Size": position_size,
-                "Trading Cost": trading_cost,
-                "Regime Window": regime_window,
+            })
+
+        elif strategy_type == "RSI":
+            strategy_settings.update({
                 "RSI Window": rsi_window,
                 "Oversold Level": oversold_level,
                 "Overbought Level": overbought_level
-            }
+            })
+
+        elif strategy_type == "Bollinger Bands":
+            strategy_settings.update({
+                "Bollinger Window": bollinger_window,
+                "Bollinger Std": bollinger_std
+            })
+
+        elif strategy_type == "Momentum":
+            strategy_settings.update({
+                "Momentum Window": momentum_window
+            })
+
+        elif strategy_type == "Breakout":
+            strategy_settings.update({
+                "Breakout Window": breakout_window,
+                "Exit Window": exit_window
+            })
 
         excel_report = generate_excel_strategy_report(
             summary=summary,
