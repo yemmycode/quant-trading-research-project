@@ -158,3 +158,17 @@ This project is for educational research only.
 Backtested results do not guarantee future performance. Real-world trading involves risk, including loss of capital. Trading costs, slippage, liquidity, taxes, execution delays, and emotional decision-making can affect live results.
 
 Do not use this project for live trading without further testing, validation, paper trading, and proper risk management.
+
+---
+
+## IBKR Integration Plan
+
+This project is being prepared for US-market broker integration using Interactive Brokers.
+
+The integration roadmap is documented in:
+
+`ibkr_integration_plan.md`
+
+The first broker-connected phase will use IBKR Paper Trading only.
+
+Live trading must remain disabled until paper testing, broker validation, risk controls, and manual confirmation workflows are fully verified.
