@@ -320,7 +320,10 @@ def read_table(table_name, limit=100):
     allowed_tables = [
         "paper_trading_history",
         "order_log",
-        "strategy_results"
+        "strategy_results",
+        "paper_broker_account",
+        "paper_broker_positions",
+        "paper_broker_orders"
     ]
 
     if table_name not in allowed_tables:
@@ -373,3 +376,212 @@ def get_database_status():
             }
 
     return status
+
+
+# ==============================
+# Paper Broker State Storage
+# ==============================
+
+def initialize_paper_broker_tables():
+    """
+    Create paper broker state tables if they do not already exist.
+    """
+
+    initialize_database()
+
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS paper_broker_account (
+            id INTEGER PRIMARY KEY CHECK (id = 1),
+            initial_cash REAL,
+            cash REAL,
+            updated_at TEXT
+        )
+    """)
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS paper_broker_positions (
+            ticker TEXT PRIMARY KEY,
+            quantity REAL,
+            average_price REAL,
+            cost_basis REAL,
+            updated_at TEXT
+        )
+    """)
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS paper_broker_orders (
+            order_id TEXT PRIMARY KEY,
+            ticker TEXT,
+            side TEXT,
+            quantity REAL,
+            order_type TEXT,
+            price REAL,
+            order_value REAL,
+            status TEXT,
+            reason TEXT,
+            created_at TEXT
+        )
+    """)
+
+    conn.commit()
+    conn.close()
+
+
+def save_paper_broker_state(initial_cash, cash, positions, orders):
+    """
+    Save the current PaperBroker account, positions, and orders to SQLite.
+    """
+
+    from datetime import datetime
+
+    initialize_paper_broker_tables()
+
+    updated_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    # Save account state
+    cursor.execute("""
+        INSERT OR REPLACE INTO paper_broker_account
+        (id, initial_cash, cash, updated_at)
+        VALUES (1, ?, ?, ?)
+    """, (float(initial_cash), float(cash), updated_at))
+
+    # Replace positions snapshot
+    cursor.execute("DELETE FROM paper_broker_positions")
+
+    for ticker, position in positions.items():
+        cursor.execute("""
+            INSERT OR REPLACE INTO paper_broker_positions
+            (ticker, quantity, average_price, cost_basis, updated_at)
+            VALUES (?, ?, ?, ?, ?)
+        """, (
+            ticker,
+            float(position.get("quantity", 0)),
+            float(position.get("average_price", 0)),
+            float(position.get("cost_basis", 0)),
+            updated_at
+        ))
+
+    # Save orders
+    for order_id, order in orders.items():
+        cursor.execute("""
+            INSERT OR REPLACE INTO paper_broker_orders
+            (order_id, ticker, side, quantity, order_type, price, order_value, status, reason, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            str(order_id),
+            order.get("ticker"),
+            order.get("side"),
+            float(order.get("quantity", 0)),
+            order.get("order_type"),
+            float(order.get("price", 0)),
+            float(order.get("order_value", 0)),
+            order.get("status"),
+            order.get("reason", ""),
+            order.get("created_at", updated_at)
+        ))
+
+    conn.commit()
+    conn.close()
+
+
+def load_paper_broker_state(default_initial_cash=10000):
+    """
+    Load PaperBroker account, positions, and orders from SQLite.
+
+    If no saved state exists, return default starting state.
+    """
+
+    initialize_paper_broker_tables()
+
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT initial_cash, cash
+        FROM paper_broker_account
+        WHERE id = 1
+    """)
+
+    account_row = cursor.fetchone()
+
+    if account_row is None:
+        initial_cash = float(default_initial_cash)
+        cash = float(default_initial_cash)
+    else:
+        initial_cash = float(account_row[0])
+        cash = float(account_row[1])
+
+    positions_df = pd.read_sql_query(
+        "SELECT ticker, quantity, average_price, cost_basis FROM paper_broker_positions",
+        conn
+    )
+
+    orders_df = pd.read_sql_query(
+        "SELECT * FROM paper_broker_orders",
+        conn
+    )
+
+    conn.close()
+
+    positions = {}
+
+    for _, row in positions_df.iterrows():
+        positions[row["ticker"]] = {
+            "quantity": float(row["quantity"]),
+            "average_price": float(row["average_price"]),
+            "cost_basis": float(row["cost_basis"])
+        }
+
+    orders = {}
+
+    for _, row in orders_df.iterrows():
+        orders[row["order_id"]] = {
+            "order_id": row["order_id"],
+            "ticker": row["ticker"],
+            "side": row["side"],
+            "quantity": float(row["quantity"]),
+            "order_type": row["order_type"],
+            "price": float(row["price"]),
+            "order_value": float(row["order_value"]),
+            "status": row["status"],
+            "reason": row["reason"],
+            "created_at": row["created_at"]
+        }
+
+    return {
+        "initial_cash": initial_cash,
+        "cash": cash,
+        "positions": positions,
+        "orders": orders
+    }
+
+
+def reset_paper_broker_state(initial_cash=10000):
+    """
+    Reset saved PaperBroker state in SQLite.
+    """
+
+    initialize_paper_broker_tables()
+
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("DELETE FROM paper_broker_account")
+    cursor.execute("DELETE FROM paper_broker_positions")
+    cursor.execute("DELETE FROM paper_broker_orders")
+
+    conn.commit()
+    conn.close()
+
+    save_paper_broker_state(
+        initial_cash=initial_cash,
+        cash=initial_cash,
+        positions={},
+        orders={}
+    )

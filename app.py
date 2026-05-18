@@ -592,6 +592,17 @@ st.subheader("Paper Broker Account")
 account_info = st.session_state.paper_broker.get_account_info()
 st.json(account_info)
 
+if st.button("Reset Paper Broker Account"):
+    reset_paper_broker_state(initial_cash=10000)
+    st.session_state.paper_broker = PaperBroker(initial_cash=10000)
+    st.session_state.order_manager = OrderManager(
+        broker=st.session_state.paper_broker,
+        risk_manager=st.session_state.risk_manager,
+        results_path=PROJECT_PATH / "results"
+    )
+    st.success("Paper broker account reset successfully.")
+    st.rerun()
+
 positions = st.session_state.paper_broker.get_positions()
 
 if positions:
@@ -697,7 +708,14 @@ except Exception as e:
 
 db_table = st.selectbox(
     "Select Database Table",
-    ["paper_trading_history", "order_log", "strategy_results"]
+    [
+        "paper_trading_history",
+        "order_log",
+        "strategy_results",
+        "paper_broker_account",
+        "paper_broker_positions",
+        "paper_broker_orders"
+    ]
 )
 
 db_limit = st.number_input(

@@ -1,10 +1,20 @@
 
 from datetime import datetime
 import uuid
+import sys
+from pathlib import Path
 
 import yfinance as yf
 
 from base_broker import BaseBroker
+
+
+PROJECT_PATH = Path(__file__).resolve().parent.parent
+
+if str(PROJECT_PATH) not in sys.path:
+    sys.path.append(str(PROJECT_PATH))
+
+from database import save_paper_broker_state, load_paper_broker_state
 
 
 class PaperBroker(BaseBroker):
@@ -13,14 +23,39 @@ class PaperBroker(BaseBroker):
 
     This broker does not connect to any real broker.
     It does not place real trades.
-    It only simulates account balance, positions, and orders.
+
+    It can persist simulated cash, positions, and orders to SQLite.
     """
 
-    def __init__(self, initial_cash=10000):
-        self.initial_cash = float(initial_cash)
-        self.cash = float(initial_cash)
-        self.positions = {}
-        self.orders = {}
+    def __init__(self, initial_cash=10000, use_database=True):
+        self.use_database = use_database
+
+        if self.use_database:
+            saved_state = load_paper_broker_state(default_initial_cash=initial_cash)
+
+            self.initial_cash = float(saved_state["initial_cash"])
+            self.cash = float(saved_state["cash"])
+            self.positions = saved_state["positions"]
+            self.orders = saved_state["orders"]
+
+        else:
+            self.initial_cash = float(initial_cash)
+            self.cash = float(initial_cash)
+            self.positions = {}
+            self.orders = {}
+
+    def save_state(self):
+        """
+        Save paper broker state to SQLite.
+        """
+
+        if self.use_database:
+            save_paper_broker_state(
+                initial_cash=self.initial_cash,
+                cash=self.cash,
+                positions=self.positions,
+                orders=self.orders
+            )
 
     def get_account_info(self):
         total_position_value = 0
@@ -48,7 +83,7 @@ class PaperBroker(BaseBroker):
 
             enriched_positions.append({
                 "ticker": ticker,
-                "quantity": position["quantity"],
+                "quantity": round(position["quantity"], 6),
                 "average_price": round(position["average_price"], 2),
                 "latest_price": round(latest_price, 2),
                 "market_value": round(market_value, 2),
@@ -81,6 +116,7 @@ class PaperBroker(BaseBroker):
     def submit_order(self, ticker, side, quantity, order_type="market"):
         ticker = ticker.upper()
         side = side.lower()
+        quantity = float(quantity)
 
         if side not in ["buy", "sell"]:
             raise ValueError("side must be either 'buy' or 'sell'.")
@@ -110,6 +146,7 @@ class PaperBroker(BaseBroker):
                 order["status"] = "rejected"
                 order["reason"] = "Insufficient paper cash."
                 self.orders[order_id] = order
+                self.save_state()
                 return order
 
             self.cash -= order_value
@@ -138,6 +175,7 @@ class PaperBroker(BaseBroker):
                 order["status"] = "rejected"
                 order["reason"] = "No paper position to sell."
                 self.orders[order_id] = order
+                self.save_state()
                 return order
 
             existing = self.positions[ticker]
@@ -146,13 +184,14 @@ class PaperBroker(BaseBroker):
                 order["status"] = "rejected"
                 order["reason"] = "Sell quantity exceeds paper position."
                 self.orders[order_id] = order
+                self.save_state()
                 return order
 
             self.cash += order_value
 
             remaining_quantity = existing["quantity"] - quantity
 
-            if remaining_quantity == 0:
+            if remaining_quantity <= 0:
                 del self.positions[ticker]
             else:
                 remaining_cost_basis = existing["average_price"] * remaining_quantity
@@ -164,6 +203,7 @@ class PaperBroker(BaseBroker):
                 }
 
         self.orders[order_id] = order
+        self.save_state()
 
         return order
 
@@ -186,6 +226,7 @@ class PaperBroker(BaseBroker):
 
         order["status"] = "cancelled"
         self.orders[order_id] = order
+        self.save_state()
 
         return order
 
