@@ -537,6 +537,124 @@ else:
     st.success("Emergency stop is inactive.")
 
 
+
+
+# ==============================
+# Portfolio Overview
+# ==============================
+
+st.markdown("---")
+st.header("Portfolio Overview")
+st.write(
+    "This section shows the current simulated paper broker account, "
+    "open positions, unrealized P&L, and recent paper order activity."
+)
+
+# Make sure paper broker, risk manager, and order manager exist in session state
+if "paper_broker" not in st.session_state:
+    st.session_state.paper_broker = PaperBroker(initial_cash=10000)
+
+if "risk_manager" not in st.session_state:
+    st.session_state.risk_manager = create_risk_manager_from_config()
+
+if "order_manager" not in st.session_state:
+    st.session_state.order_manager = OrderManager(
+        broker=st.session_state.paper_broker,
+        risk_manager=st.session_state.risk_manager,
+        results_path=PROJECT_PATH / "results"
+    )
+
+portfolio_account = st.session_state.paper_broker.get_account_info()
+portfolio_positions = st.session_state.paper_broker.get_positions()
+
+p_col1, p_col2, p_col3, p_col4 = st.columns(4)
+
+p_col1.metric("Paper Cash", f"R {portfolio_account['cash']:,.2f}")
+p_col2.metric("Paper Equity", f"R {portfolio_account['equity']:,.2f}")
+p_col3.metric("Initial Cash", f"R {portfolio_account['initial_cash']:,.2f}")
+p_col4.metric("Open Positions", portfolio_account["open_positions"])
+
+# Calculate total unrealized P&L
+if portfolio_positions:
+    positions_df = pd.DataFrame(portfolio_positions)
+    total_unrealized_pnl = positions_df["unrealized_pnl"].sum()
+    total_market_value = positions_df["market_value"].sum()
+else:
+    positions_df = pd.DataFrame()
+    total_unrealized_pnl = 0
+    total_market_value = 0
+
+p_col5, p_col6 = st.columns(2)
+
+p_col5.metric("Total Market Value", f"R {total_market_value:,.2f}")
+p_col6.metric("Unrealized P&L", f"R {total_unrealized_pnl:,.2f}")
+
+st.subheader("Open Paper Positions")
+
+if positions_df.empty:
+    st.info("No open paper positions yet.")
+else:
+    st.dataframe(positions_df, use_container_width=True)
+
+    # Portfolio allocation chart
+    st.subheader("Portfolio Allocation")
+
+    allocation_df = positions_df[["ticker", "market_value"]].copy()
+    allocation_df = allocation_df.sort_values(by="market_value", ascending=False)
+
+    fig, ax = plt.subplots(figsize=(8, 5))
+    ax.pie(
+        allocation_df["market_value"],
+        labels=allocation_df["ticker"],
+        autopct="%1.1f%%",
+        startangle=90
+    )
+    ax.set_title("Portfolio Allocation by Market Value")
+    ax.axis("equal")
+
+    st.pyplot(fig)
+
+st.subheader("Recent Paper Orders")
+
+order_log_file = PROJECT_PATH / "results" / "order_log.csv"
+
+if order_log_file.exists():
+    try:
+        portfolio_order_log = pd.read_csv(order_log_file)
+        st.dataframe(portfolio_order_log.tail(20), use_container_width=True)
+
+        order_log_csv = portfolio_order_log.to_csv(index=False).encode("utf-8")
+
+        st.download_button(
+            label="Download Full Order Log CSV",
+            data=order_log_csv,
+            file_name="order_log.csv",
+            mime="text/csv",
+            key="portfolio_order_log_download"
+        )
+
+    except Exception as e:
+        st.warning("Could not load order log.")
+        st.caption(str(e))
+else:
+    st.info("No order log found yet. Submit a simulated paper order first.")
+
+st.subheader("Portfolio Controls")
+
+if st.button("Reset Paper Broker Portfolio", key="portfolio_reset_button"):
+    reset_paper_broker_state(initial_cash=10000)
+
+    st.session_state.paper_broker = PaperBroker(initial_cash=10000)
+    st.session_state.order_manager = OrderManager(
+        broker=st.session_state.paper_broker,
+        risk_manager=st.session_state.risk_manager,
+        results_path=PROJECT_PATH / "results"
+    )
+
+    st.success("Paper broker portfolio reset successfully.")
+    st.rerun()
+
+
 # ==============================
 # Manual Confirmation Order Ticket
 # ==============================
