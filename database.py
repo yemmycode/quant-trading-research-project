@@ -285,16 +285,91 @@ def save_strategy_results(results_df, run_id=None):
     return insert_dataframe("strategy_results", db_df)
 
 
-def read_table(table_name, limit=100):
+
+def table_exists(table_name):
     """
-    Read latest rows from a database table.
+    Check whether a table exists in the SQLite database.
     """
 
     initialize_database()
 
     conn = get_connection()
-    query = f"SELECT * FROM {table_name} ORDER BY id DESC LIMIT {int(limit)}"
-    df = pd.read_sql_query(query, conn)
+    cursor = conn.cursor()
+
+    cursor.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
+        (table_name,)
+    )
+
+    result = cursor.fetchone()
+
     conn.close()
 
+    return result is not None
+
+
+def read_table(table_name, limit=100):
+    """
+    Safely read latest rows from a database table.
+
+    If the database or table does not exist yet, return an empty DataFrame.
+    """
+
+    initialize_database()
+
+    allowed_tables = [
+        "paper_trading_history",
+        "order_log",
+        "strategy_results"
+    ]
+
+    if table_name not in allowed_tables:
+        raise ValueError(f"Table '{table_name}' is not allowed.")
+
+    if not table_exists(table_name):
+        return pd.DataFrame()
+
+    conn = get_connection()
+
+    try:
+        query = f"SELECT * FROM {table_name} ORDER BY id DESC LIMIT ?"
+        df = pd.read_sql_query(query, conn, params=(int(limit),))
+    except Exception:
+        df = pd.DataFrame()
+    finally:
+        conn.close()
+
     return df
+
+
+def get_database_status():
+    """
+    Return simple database status information.
+    """
+
+    initialize_database()
+
+    status = {
+        "database_file": str(DATABASE_FILE),
+        "database_exists": DATABASE_FILE.exists(),
+        "tables": {}
+    }
+
+    for table_name in [
+        "paper_trading_history",
+        "order_log",
+        "strategy_results"
+    ]:
+        try:
+            df = read_table(table_name, limit=1)
+            status["tables"][table_name] = {
+                "exists": table_exists(table_name),
+                "has_records": not df.empty
+            }
+        except Exception:
+            status["tables"][table_name] = {
+                "exists": False,
+                "has_records": False
+            }
+
+    return status

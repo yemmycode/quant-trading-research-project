@@ -33,7 +33,7 @@ from paper_trading import run_paper_trading_check
 from paper_broker import PaperBroker
 from risk_manager import create_risk_manager_from_config
 from order_manager import OrderManager
-from database import read_table
+from database import read_table, get_database_status
 from config import DASHBOARD_PASSWORD
 
 
@@ -675,6 +675,8 @@ else:
     st.info("No order log found yet.")
 
 
+
+
 # ==============================
 # Database Viewer
 # ==============================
@@ -682,6 +684,16 @@ else:
 st.markdown("---")
 st.header("Database Viewer")
 st.write("View latest records stored in the local SQLite database.")
+
+try:
+    db_status = get_database_status()
+
+    with st.expander("Database Status"):
+        st.json(db_status)
+
+except Exception as e:
+    st.warning("Database status could not be loaded yet.")
+    st.caption(str(e))
 
 db_table = st.selectbox(
     "Select Database Table",
@@ -698,7 +710,24 @@ db_limit = st.number_input(
 
 try:
     db_data = read_table(db_table, limit=db_limit)
-    st.dataframe(db_data, use_container_width=True)
+
+    if db_data.empty:
+        st.info(
+            "No records found yet for this table. "
+            "Run a paper trading check, order ticket test, or research pipeline first."
+        )
+    else:
+        st.dataframe(db_data, use_container_width=True)
+
+        db_csv = db_data.to_csv(index=False).encode("utf-8")
+
+        st.download_button(
+            label=f"Download {db_table} CSV",
+            data=db_csv,
+            file_name=f"{db_table}.csv",
+            mime="text/csv"
+        )
+
 except Exception as e:
     st.error("Could not read database table.")
     st.exception(e)
