@@ -34,6 +34,7 @@ from paper_broker import PaperBroker
 from risk_manager import create_risk_manager_from_config
 from order_manager import OrderManager
 from database import read_table, get_database_status
+from report_generator import generate_excel_strategy_report
 from config import DASHBOARD_PASSWORD
 
 
@@ -400,6 +401,56 @@ if run_button:
                 file_name=f"{ticker}_{strategy_type.lower().replace(' ', '_')}_trade_log.csv",
                 mime="text/csv"
             )
+
+        # ==============================
+        # Downloadable Strategy Report
+        # ==============================
+
+        st.subheader("Download Strategy Report")
+
+        if strategy_type == "Moving Average":
+            strategy_settings = {
+                "Strategy Type": strategy_type,
+                "Ticker": ticker,
+                "Start Date": start_date,
+                "End Date": end_date,
+                "Initial Capital": initial_capital,
+                "Position Size": position_size,
+                "Trading Cost": trading_cost,
+                "Regime Window": regime_window,
+                "Short Window": short_window,
+                "Long Window": long_window
+            }
+        else:
+            strategy_settings = {
+                "Strategy Type": strategy_type,
+                "Ticker": ticker,
+                "Start Date": start_date,
+                "End Date": end_date,
+                "Initial Capital": initial_capital,
+                "Position Size": position_size,
+                "Trading Cost": trading_cost,
+                "Regime Window": regime_window,
+                "RSI Window": rsi_window,
+                "Oversold Level": oversold_level,
+                "Overbought Level": overbought_level
+            }
+
+        excel_report = generate_excel_strategy_report(
+            summary=summary,
+            data=data,
+            trade_log=trade_log,
+            strategy_settings=strategy_settings
+        )
+
+        report_file_name = f"{ticker}_{strategy_type.lower().replace(' ', '_')}_strategy_report.xlsx"
+
+        st.download_button(
+            label="Download Excel Strategy Report",
+            data=excel_report,
+            file_name=report_file_name,
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
 
         # ==============================
         # Data Preview
