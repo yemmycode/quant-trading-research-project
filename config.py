@@ -1,3 +1,7 @@
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # ==============================
 # Quant Trading Project Settings
@@ -101,3 +105,16 @@ def validate_execution_settings():
         )
 
     return True
+
+# ==============================
+# Dashboard Authentication
+# ==============================
+
+
+
+
+# ==============================
+# Dashboard Authentication
+# ==============================
+
+DASHBOARD_PASSWORD = os.getenv("DASHBOARD_PASSWORD", "demo-password")
