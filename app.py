@@ -1023,6 +1023,433 @@ if run_comparison_button:
             )
 
 
+
+
+# ==============================
+# Parameter Optimization Dashboard
+# ==============================
+
+st.markdown("---")
+st.header("Parameter Optimization Dashboard")
+st.write(
+    "Test multiple parameter presets across strategies and rank the best-performing setups."
+)
+
+opt_col1, opt_col2, opt_col3 = st.columns(3)
+
+with opt_col1:
+    opt_ticker = st.text_input(
+        "Optimization Ticker",
+        value="SPY",
+        key="opt_ticker"
+    ).upper()
+
+with opt_col2:
+    opt_start_date = st.text_input(
+        "Optimization Start Date",
+        value="2018-01-01",
+        key="opt_start_date"
+    )
+
+with opt_col3:
+    opt_end_date = st.text_input(
+        "Optimization End Date",
+        value="2025-01-01",
+        key="opt_end_date"
+    )
+
+opt_col4, opt_col5, opt_col6 = st.columns(3)
+
+with opt_col4:
+    opt_initial_capital = st.number_input(
+        "Optimization Initial Capital",
+        min_value=1000,
+        max_value=10000000,
+        value=10000,
+        step=1000,
+        key="opt_initial_capital"
+    )
+
+with opt_col5:
+    opt_position_size = st.slider(
+        "Optimization Position Size",
+        min_value=0.10,
+        max_value=1.00,
+        value=0.50,
+        step=0.05,
+        key="opt_position_size"
+    )
+
+with opt_col6:
+    opt_trading_cost = st.number_input(
+        "Optimization Trading Cost",
+        min_value=0.0,
+        max_value=0.05,
+        value=0.001,
+        step=0.001,
+        format="%.4f",
+        key="opt_trading_cost"
+    )
+
+opt_regime_window = st.number_input(
+    "Optimization Regime Window",
+    min_value=50,
+    max_value=300,
+    value=200,
+    step=10,
+    key="opt_regime_window"
+)
+
+opt_metric = st.selectbox(
+    "Rank Results By",
+    [
+        "Sharpe Ratio",
+        "Sortino Ratio",
+        "Calmar Ratio",
+        "Total Return (%)",
+        "Annual Return (%)",
+        "Profit Factor",
+        "Recovery Factor"
+    ],
+    key="opt_metric"
+)
+
+opt_selected_strategies = st.multiselect(
+    "Select Strategies for Optimization",
+    [
+        "Moving Average",
+        "RSI",
+        "Bollinger Bands",
+        "Momentum",
+        "Breakout"
+    ],
+    default=[
+        "Moving Average",
+        "RSI",
+        "Bollinger Bands",
+        "Momentum",
+        "Breakout"
+    ],
+    key="opt_selected_strategies"
+)
+
+run_optimization_button = st.button("Run Parameter Optimization")
+
+if run_optimization_button:
+    if not opt_selected_strategies:
+        st.warning("Please select at least one strategy.")
+    else:
+        optimization_results = []
+        optimization_curves = {}
+
+        moving_average_presets = [
+            {"short_window": 10, "long_window": 50},
+            {"short_window": 20, "long_window": 50},
+            {"short_window": 20, "long_window": 100},
+            {"short_window": 50, "long_window": 200},
+        ]
+
+        rsi_presets = [
+            {"rsi_window": 14, "oversold_level": 30, "overbought_level": 70},
+            {"rsi_window": 14, "oversold_level": 35, "overbought_level": 65},
+            {"rsi_window": 21, "oversold_level": 30, "overbought_level": 70},
+        ]
+
+        bollinger_presets = [
+            {"window": 20, "num_std": 2},
+            {"window": 20, "num_std": 2.5},
+            {"window": 30, "num_std": 2},
+        ]
+
+        momentum_presets = [
+            {"momentum_window": 30},
+            {"momentum_window": 60},
+            {"momentum_window": 90},
+        ]
+
+        breakout_presets = [
+            {"breakout_window": 50, "exit_window": 20},
+            {"breakout_window": 100, "exit_window": 30},
+            {"breakout_window": 120, "exit_window": 50},
+        ]
+
+        with st.spinner("Running parameter optimization..."):
+
+            if "Moving Average" in opt_selected_strategies:
+                for preset in moving_average_presets:
+                    try:
+                        opt_data, opt_summary, opt_trade_log = run_backtest(
+                            ticker=opt_ticker,
+                            start_date=opt_start_date,
+                            end_date=opt_end_date,
+                            short_window=preset["short_window"],
+                            long_window=preset["long_window"],
+                            regime_window=int(opt_regime_window),
+                            position_size=float(opt_position_size),
+                            trading_cost=float(opt_trading_cost),
+                            initial_capital=float(opt_initial_capital)
+                        )
+
+                        row = opt_summary[
+                            opt_summary["Strategy"] == "Quant Strategy"
+                        ].copy()
+
+                        if not row.empty:
+                            label = f"MA {preset['short_window']}/{preset['long_window']}"
+                            row["Optimization Label"] = label
+                            row["Strategy Family"] = "Moving Average"
+                            optimization_results.append(row)
+                            optimization_curves[label] = opt_data
+
+                    except Exception as e:
+                        st.warning(f"Moving Average preset failed: {preset} | {e}")
+
+            if "RSI" in opt_selected_strategies:
+                for preset in rsi_presets:
+                    try:
+                        opt_data, opt_summary, opt_trade_log = run_rsi_backtest(
+                            ticker=opt_ticker,
+                            start_date=opt_start_date,
+                            end_date=opt_end_date,
+                            rsi_window=preset["rsi_window"],
+                            oversold_level=preset["oversold_level"],
+                            overbought_level=preset["overbought_level"],
+                            regime_window=int(opt_regime_window),
+                            position_size=float(opt_position_size),
+                            trading_cost=float(opt_trading_cost),
+                            initial_capital=float(opt_initial_capital)
+                        )
+
+                        row = opt_summary[
+                            opt_summary["Strategy"] == "RSI Strategy"
+                        ].copy()
+
+                        if not row.empty:
+                            label = (
+                                f"RSI {preset['rsi_window']} "
+                                f"{preset['oversold_level']}/{preset['overbought_level']}"
+                            )
+                            row["Optimization Label"] = label
+                            row["Strategy Family"] = "RSI"
+                            optimization_results.append(row)
+                            optimization_curves[label] = opt_data
+
+                    except Exception as e:
+                        st.warning(f"RSI preset failed: {preset} | {e}")
+
+            if "Bollinger Bands" in opt_selected_strategies:
+                for preset in bollinger_presets:
+                    try:
+                        opt_data, opt_summary, opt_trade_log = run_bollinger_backtest(
+                            ticker=opt_ticker,
+                            start_date=opt_start_date,
+                            end_date=opt_end_date,
+                            window=preset["window"],
+                            num_std=preset["num_std"],
+                            regime_window=int(opt_regime_window),
+                            position_size=float(opt_position_size),
+                            trading_cost=float(opt_trading_cost),
+                            initial_capital=float(opt_initial_capital)
+                        )
+
+                        row = opt_summary[
+                            opt_summary["Strategy"] == "Bollinger Bands Strategy"
+                        ].copy()
+
+                        if not row.empty:
+                            label = f"BB {preset['window']}/{preset['num_std']} std"
+                            row["Optimization Label"] = label
+                            row["Strategy Family"] = "Bollinger Bands"
+                            optimization_results.append(row)
+                            optimization_curves[label] = opt_data
+
+                    except Exception as e:
+                        st.warning(f"Bollinger preset failed: {preset} | {e}")
+
+            if "Momentum" in opt_selected_strategies:
+                for preset in momentum_presets:
+                    try:
+                        opt_data, opt_summary, opt_trade_log = run_momentum_backtest(
+                            ticker=opt_ticker,
+                            start_date=opt_start_date,
+                            end_date=opt_end_date,
+                            momentum_window=preset["momentum_window"],
+                            regime_window=int(opt_regime_window),
+                            position_size=float(opt_position_size),
+                            trading_cost=float(opt_trading_cost),
+                            initial_capital=float(opt_initial_capital)
+                        )
+
+                        row = opt_summary[
+                            opt_summary["Strategy"] == "Momentum Strategy"
+                        ].copy()
+
+                        if not row.empty:
+                            label = f"Momentum {preset['momentum_window']}"
+                            row["Optimization Label"] = label
+                            row["Strategy Family"] = "Momentum"
+                            optimization_results.append(row)
+                            optimization_curves[label] = opt_data
+
+                    except Exception as e:
+                        st.warning(f"Momentum preset failed: {preset} | {e}")
+
+            if "Breakout" in opt_selected_strategies:
+                for preset in breakout_presets:
+                    try:
+                        opt_data, opt_summary, opt_trade_log = run_breakout_backtest(
+                            ticker=opt_ticker,
+                            start_date=opt_start_date,
+                            end_date=opt_end_date,
+                            breakout_window=preset["breakout_window"],
+                            exit_window=preset["exit_window"],
+                            regime_window=int(opt_regime_window),
+                            position_size=float(opt_position_size),
+                            trading_cost=float(opt_trading_cost),
+                            initial_capital=float(opt_initial_capital)
+                        )
+
+                        row = opt_summary[
+                            opt_summary["Strategy"] == "Breakout Strategy"
+                        ].copy()
+
+                        if not row.empty:
+                            label = (
+                                f"Breakout {preset['breakout_window']}/"
+                                f"{preset['exit_window']}"
+                            )
+                            row["Optimization Label"] = label
+                            row["Strategy Family"] = "Breakout"
+                            optimization_results.append(row)
+                            optimization_curves[label] = opt_data
+
+                    except Exception as e:
+                        st.warning(f"Breakout preset failed: {preset} | {e}")
+
+        if not optimization_results:
+            st.error("No optimization results were generated.")
+        else:
+            optimization_table = pd.concat(optimization_results, ignore_index=True)
+
+            numeric_columns = optimization_table.select_dtypes(include="number").columns
+            optimization_table[numeric_columns] = optimization_table[numeric_columns].round(2)
+
+            if opt_metric not in optimization_table.columns:
+                st.warning(f"{opt_metric} not found. Ranking by Sharpe Ratio instead.")
+                opt_metric = "Sharpe Ratio"
+
+            optimization_table = optimization_table.sort_values(
+                by=opt_metric,
+                ascending=False
+            )
+
+            st.subheader("Optimization Results")
+
+            display_columns = [
+                "Optimization Label",
+                "Strategy Family",
+                "Strategy",
+                "Ticker",
+                "Total Return (%)",
+                "Annual Return (%)",
+                "Volatility (%)",
+                "Sharpe Ratio",
+                "Sortino Ratio",
+                "Calmar Ratio",
+                "Max Drawdown (%)",
+                "Win Rate (%)",
+                "Profit Factor",
+                "Recovery Factor",
+                "Final Value (R)",
+                "Buy Trades",
+                "Sell Trades"
+            ]
+
+            available_columns = [
+                col for col in display_columns if col in optimization_table.columns
+            ]
+
+            st.dataframe(
+                optimization_table[available_columns],
+                use_container_width=True
+            )
+
+            st.subheader("Best Parameter Setup")
+
+            best_row = optimization_table.iloc[0]
+
+            best_col1, best_col2, best_col3, best_col4 = st.columns(4)
+
+            best_col1.metric(
+                "Best Setup",
+                best_row["Optimization Label"]
+            )
+
+            best_col2.metric(
+                f"Best {opt_metric}",
+                f"{best_row[opt_metric]:.2f}"
+            )
+
+            best_col3.metric(
+                "Total Return",
+                f"{best_row['Total Return (%)']:.2f}%"
+            )
+
+            best_col4.metric(
+                "Max Drawdown",
+                f"{best_row['Max Drawdown (%)']:.2f}%"
+            )
+
+            st.subheader("Top 5 Equity Curve Comparison")
+
+            top_labels = optimization_table["Optimization Label"].head(5).tolist()
+
+            fig_opt, ax_opt = plt.subplots(figsize=(12, 6))
+
+            for label in top_labels:
+                if label in optimization_curves:
+                    curve_data = optimization_curves[label]
+                    equity_curve = opt_initial_capital * curve_data["Strategy_Growth"]
+                    ax_opt.plot(equity_curve, label=label)
+
+            ax_opt.set_title(f"Top 5 Optimized Strategy Equity Curves - {opt_ticker}")
+            ax_opt.set_xlabel("Date")
+            ax_opt.set_ylabel("Portfolio Value")
+            ax_opt.legend()
+            ax_opt.grid(True)
+
+            st.pyplot(fig_opt)
+
+            st.subheader("Top 5 Drawdown Comparison")
+
+            fig_opt_dd, ax_opt_dd = plt.subplots(figsize=(12, 6))
+
+            for label in top_labels:
+                if label in optimization_curves:
+                    curve_data = optimization_curves[label]
+                    ax_opt_dd.plot(
+                        curve_data["Strategy_Drawdown"],
+                        label=label
+                    )
+
+            ax_opt_dd.set_title(f"Top 5 Optimized Strategy Drawdowns - {opt_ticker}")
+            ax_opt_dd.set_xlabel("Date")
+            ax_opt_dd.set_ylabel("Drawdown")
+            ax_opt_dd.legend()
+            ax_opt_dd.grid(True)
+
+            st.pyplot(fig_opt_dd)
+
+            optimization_csv = optimization_table.to_csv(index=False).encode("utf-8")
+
+            st.download_button(
+                label="Download Optimization Results CSV",
+                data=optimization_csv,
+                file_name=f"{opt_ticker}_parameter_optimization_results.csv",
+                mime="text/csv"
+            )
+
+
 # ==============================
 # Portfolio Overview
 # ==============================
