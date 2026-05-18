@@ -6,7 +6,7 @@ from datetime import datetime
 import pandas as pd
 
 
-PROJECT_PATH = Path(r"C:\Users\yemi\OneDrive\Desktop\quant_trading_project")
+PROJECT_PATH = Path(__file__).resolve().parent
 DATA_PATH = PROJECT_PATH / "data"
 DATA_PATH.mkdir(parents=True, exist_ok=True)
 

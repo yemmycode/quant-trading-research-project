@@ -7,7 +7,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 # Project paths
-PROJECT_PATH = Path(r"C:\Users\yemi\OneDrive\Desktop\quant_trading_project")
+PROJECT_PATH = Path(__file__).resolve().parent
 STRATEGIES_PATH = PROJECT_PATH / "strategies"
 DEFAULT_RESULTS_PATH = PROJECT_PATH / "results"
 DEFAULT_CHARTS_PATH = PROJECT_PATH / "charts"
