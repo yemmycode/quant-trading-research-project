@@ -39,7 +39,14 @@ from risk_manager import create_risk_manager_from_config
 from order_manager import OrderManager
 from database import read_table, get_database_status
 from report_generator import generate_excel_strategy_report
-from config import DASHBOARD_PASSWORD
+from config import (
+    DASHBOARD_PASSWORD,
+    EXECUTION_MODE,
+    DEFAULT_BROKER,
+    PRIMARY_MARKET,
+    DEFAULT_CURRENCY,
+    ALLOW_LIVE_TRADING
+)
 
 
 # ==============================
@@ -129,6 +136,22 @@ st.write(
 st.warning(
     "Educational research only. Backtested results do not guarantee future performance."
 )
+
+
+st.subheader("System Mode")
+
+mode_col1, mode_col2, mode_col3, mode_col4 = st.columns(4)
+
+mode_col1.metric("Execution Mode", EXECUTION_MODE)
+mode_col2.metric("Default Broker", DEFAULT_BROKER)
+mode_col3.metric("Primary Market", PRIMARY_MARKET)
+mode_col4.metric("Currency", DEFAULT_CURRENCY)
+
+if EXECUTION_MODE == "LIVE_MANUAL" and ALLOW_LIVE_TRADING:
+    st.error("LIVE MANUAL MODE IS ENABLED. Real broker orders may be possible if broker integration is active.")
+else:
+    st.info("Live trading is disabled. The system is operating in research or paper/sandbox-safe mode.")
+
 
 
 # ==============================

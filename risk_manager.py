@@ -206,11 +206,23 @@ def create_risk_manager_from_config():
         MAX_WEEKLY_LOSS,
         MAX_TOTAL_DRAWDOWN,
         ALLOWED_TICKERS,
-        EMERGENCY_STOP
+        EMERGENCY_STOP,
+        EXECUTION_MODE,
+        DEFAULT_BROKER,
+        ALLOW_LIVE_TRADING,
+        validate_execution_settings
+    )
+
+    validate_execution_settings()
+
+    effective_live_trading_enabled = (
+        LIVE_TRADING_ENABLED
+        and ALLOW_LIVE_TRADING
+        and EXECUTION_MODE == "LIVE_MANUAL"
     )
 
     return RiskManager(
-        live_trading_enabled=LIVE_TRADING_ENABLED,
+        live_trading_enabled=effective_live_trading_enabled,
         require_manual_confirmation=REQUIRE_MANUAL_CONFIRMATION,
         max_position_size=MAX_POSITION_SIZE,
         max_daily_loss=MAX_DAILY_LOSS,
