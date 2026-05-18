@@ -118,3 +118,36 @@ def validate_execution_settings():
 # ==============================
 
 DASHBOARD_PASSWORD = os.getenv("DASHBOARD_PASSWORD", "demo-password")
+
+
+# ==============================
+# Live Trading Safety Settings
+# ==============================
+
+# Live trading must remain disabled by default.
+LIVE_TRADING_ENABLED = False
+
+# Manual confirmation should remain required before any real order.
+REQUIRE_MANUAL_CONFIRMATION = True
+
+# Maximum fraction of account allowed in one position.
+# 0.10 = 10%
+MAX_POSITION_SIZE = 0.10
+
+# Maximum daily loss allowed before blocking trading.
+# 0.02 = 2%
+MAX_DAILY_LOSS = 0.02
+
+# Maximum weekly loss allowed before blocking trading.
+# 0.05 = 5%
+MAX_WEEKLY_LOSS = 0.05
+
+# Maximum total drawdown allowed before blocking trading.
+# 0.10 = 10%
+MAX_TOTAL_DRAWDOWN = 0.10
+
+# Only these tickers are allowed for future live/paper order checks.
+ALLOWED_TICKERS = ["SPY", "QQQ"]
+
+# Emergency stop blocks all future trading checks.
+EMERGENCY_STOP = False
