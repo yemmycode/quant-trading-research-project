@@ -14,10 +14,6 @@ if str(PROJECT_PATH) not in sys.path:
     sys.path.append(str(PROJECT_PATH))
 
 
-from paper_broker import PaperBroker
-from ibkr_broker import IBKRBroker
-from alpaca_broker import AlpacaBroker
-
 from config import (
     DEFAULT_BROKER,
     SUPPORTED_BROKERS,
@@ -36,15 +32,8 @@ def get_broker(
     """
     Return the selected broker adapter.
 
-    Supported broker names:
-    - paper
-    - ibkr
-    - alpaca
-
-    For now:
-    - paper is fully functional
-    - ibkr is a safe placeholder
-    - alpaca is a safe placeholder
+    This function uses lazy imports so Streamlit does not load IBKR packages
+    unless the IBKR broker is actually requested.
     """
 
     validate_execution_settings()
@@ -61,6 +50,8 @@ def get_broker(
         )
 
     if broker_name == "paper":
+        from paper_broker import PaperBroker
+
         return PaperBroker(
             initial_cash=initial_cash,
             use_database=use_database
@@ -72,6 +63,8 @@ def get_broker(
                 "IBKR live mode is blocked because ALLOW_LIVE_TRADING is False."
             )
 
+        from ibkr_broker import IBKRBroker
+
         return IBKRBroker(paper_mode=paper_mode)
 
     if broker_name == "alpaca":
@@ -79,6 +72,8 @@ def get_broker(
             raise PermissionError(
                 "Alpaca live mode is blocked because ALLOW_LIVE_TRADING is False."
             )
+
+        from alpaca_broker import AlpacaBroker
 
         return AlpacaBroker(paper_mode=paper_mode)
 
@@ -88,6 +83,9 @@ def get_broker(
 def list_available_brokers():
     """
     Return broker availability information.
+
+    This function intentionally does not import IBKR or Alpaca packages.
+    It is safe for Streamlit dashboard startup.
     """
 
     return [
@@ -98,8 +96,8 @@ def list_available_brokers():
         },
         {
             "broker": "ibkr",
-            "status": "placeholder",
-            "description": "Interactive Brokers adapter planned. Not connected yet."
+            "status": "configured placeholder / local only",
+            "description": "Interactive Brokers adapter. Use locally with TWS or IB Gateway."
         },
         {
             "broker": "alpaca",
