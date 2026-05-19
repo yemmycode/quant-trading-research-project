@@ -1834,6 +1834,142 @@ if submit_broker_order:
             )
 
 
+
+
+# ==============================
+# IBKR Paper Order Management
+# ==============================
+
+st.markdown("---")
+st.header("IBKR Paper Order Management")
+st.write(
+    "View open IBKR paper orders and cancel selected open paper orders."
+)
+
+st.warning(
+    "This section is for IBKR PAPER orders only. "
+    "Live trading remains disabled."
+)
+
+refresh_open_orders = st.button(
+    "Refresh IBKR Open Paper Orders",
+    key="refresh_ibkr_open_orders"
+)
+
+if refresh_open_orders:
+    try:
+        broker = get_broker("ibkr")
+        open_orders = broker.get_open_orders()
+
+        st.session_state["ibkr_open_orders"] = open_orders
+
+        try:
+            broker.disconnect()
+        except Exception:
+            pass
+
+        if open_orders:
+            st.success(f"Found {len(open_orders)} open IBKR paper order(s).")
+        else:
+            st.info("No open IBKR paper orders found.")
+
+    except Exception as e:
+        st.error("Could not fetch IBKR open paper orders.")
+        st.exception(e)
+
+if "ibkr_open_orders" in st.session_state:
+    open_orders = st.session_state["ibkr_open_orders"]
+
+    if open_orders:
+        open_orders_df = pd.DataFrame(open_orders)
+
+        st.subheader("Open IBKR Paper Orders")
+        st.dataframe(open_orders_df, use_container_width=True)
+
+        available_order_ids = [
+            int(order["order_id"])
+            for order in open_orders
+            if order.get("order_id") is not None
+        ]
+
+        if available_order_ids:
+            selected_cancel_order_id = st.selectbox(
+                "Select Order ID to Cancel",
+                available_order_ids,
+                key="selected_cancel_order_id"
+            )
+
+            cancel_confirmation = st.checkbox(
+                "I confirm I want to cancel this IBKR PAPER order.",
+                key="cancel_ibkr_order_confirmation"
+            )
+
+            cancel_button = st.button(
+                "Cancel Selected IBKR Paper Order",
+                key="cancel_selected_ibkr_paper_order"
+            )
+
+            if cancel_button:
+                if not cancel_confirmation:
+                    st.error("Please tick the cancellation confirmation checkbox first.")
+
+                    log_audit_event(
+                        event_type="DASHBOARD_CANCEL_BLOCKED_NO_CONFIRMATION",
+                        order_id=selected_cancel_order_id,
+                        broker_name="ibkr",
+                        execution_mode=EXECUTION_MODE,
+                        broker_status="blocked",
+                        message="IBKR paper order cancellation blocked because confirmation was missing."
+                    )
+
+                else:
+                    try:
+                        broker = get_broker("ibkr")
+
+                        cancel_result = broker.cancel_order(selected_cancel_order_id)
+
+                        st.success("Cancel request sent to IBKR paper account.")
+                        st.json(cancel_result)
+
+                        log_audit_event(
+                            event_type="DASHBOARD_IBKR_PAPER_ORDER_CANCEL_REQUESTED",
+                            order_id=selected_cancel_order_id,
+                            broker_name="ibkr",
+                            execution_mode=EXECUTION_MODE,
+                            broker_status="cancel_requested",
+                            message="Dashboard cancel request sent for IBKR paper order.",
+                            details=cancel_result
+                        )
+
+                        updated_open_orders = broker.get_open_orders()
+                        st.session_state["ibkr_open_orders"] = updated_open_orders
+
+                        try:
+                            broker.disconnect()
+                        except Exception:
+                            pass
+
+                        st.rerun()
+
+                    except Exception as e:
+                        st.error("IBKR paper order cancellation failed or was blocked.")
+                        st.exception(e)
+
+                        log_audit_event(
+                            event_type="DASHBOARD_IBKR_PAPER_ORDER_CANCEL_FAILED",
+                            order_id=selected_cancel_order_id,
+                            broker_name="ibkr",
+                            execution_mode=EXECUTION_MODE,
+                            broker_status="failed",
+                            message="Dashboard IBKR paper order cancellation failed.",
+                            error=e
+                        )
+        else:
+            st.info("No valid order IDs found in open orders.")
+    else:
+        st.info("No open IBKR paper orders found.")
+
+
 # ==============================
 # Portfolio Overview
 # ==============================
