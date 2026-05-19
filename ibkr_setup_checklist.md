@@ -68,3 +68,12 @@
 - [ ] Port confirmed
 - [ ] test_ibkr_connection.py created
 - [ ] Connection test completed successfully
+
+## Lesson 67 Account Info Test
+
+- [ ] test_ibkr_account_info.py created
+- [ ] TWS or IB Gateway open
+- [ ] Logged into paper trading
+- [ ] API socket enabled
+- [ ] Account summary retrieved successfully
+- [ ] No orders placed
