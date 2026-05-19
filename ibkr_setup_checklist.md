@@ -203,3 +203,13 @@
 - [ ] IBKR paper order tested from dashboard
 - [ ] No live trading enabled
 - [ ] .env returned to safe mode after testing
+
+## Lesson 79 Live Broker Signal Generator
+
+- [ ] live_signal.py created
+- [ ] test_live_signal.py created
+- [ ] Latest signal generated successfully
+- [ ] Streamlit live signal section added
+- [ ] Signal action displayed in dashboard
+- [ ] Signal audit event logged
+- [ ] No broker order submitted automatically

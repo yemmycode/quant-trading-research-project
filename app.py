@@ -1,3 +1,4 @@
+from live_signal import generate_live_signal
 from trade_audit import log_audit_event
 from safety_manager import read_emergency_stop_state, activate_emergency_stop, deactivate_emergency_stop, is_emergency_stop_active
 
@@ -1526,6 +1527,290 @@ if run_optimization_button:
             )
 
 
+
+
+
+
+# ==============================
+# Live Broker Signal Generator
+# ==============================
+
+st.markdown("---")
+st.header("Live Broker Signal Generator")
+st.write(
+    "Generate the latest strategy signal for review. "
+    "This does not submit any broker order."
+)
+
+signal_col1, signal_col2, signal_col3 = st.columns(3)
+
+with signal_col1:
+    signal_ticker = st.selectbox(
+        "Signal Ticker",
+        ["SPY", "QQQ", "AAPL", "MSFT"],
+        key="signal_ticker"
+    )
+
+with signal_col2:
+    signal_strategy = st.selectbox(
+        "Signal Strategy",
+        [
+            "moving_average",
+            "rsi",
+            "bollinger_bands",
+            "momentum",
+            "breakout"
+        ],
+        key="signal_strategy"
+    )
+
+with signal_col3:
+    signal_start_date = st.text_input(
+        "Signal Start Date",
+        value="2018-01-01",
+        key="signal_start_date"
+    )
+
+signal_param_col1, signal_param_col2, signal_param_col3 = st.columns(3)
+
+with signal_param_col1:
+    signal_position_size = st.slider(
+        "Signal Position Size",
+        min_value=0.10,
+        max_value=1.00,
+        value=0.50,
+        step=0.05,
+        key="signal_position_size"
+    )
+
+with signal_param_col2:
+    signal_trading_cost = st.number_input(
+        "Signal Trading Cost",
+        min_value=0.0,
+        max_value=0.05,
+        value=0.001,
+        step=0.001,
+        format="%.4f",
+        key="signal_trading_cost"
+    )
+
+with signal_param_col3:
+    signal_regime_window = st.number_input(
+        "Signal Regime Window",
+        min_value=50,
+        max_value=300,
+        value=200,
+        step=10,
+        key="signal_regime_window"
+    )
+
+st.subheader("Strategy Parameters")
+
+if signal_strategy == "moving_average":
+    sig_col_a, sig_col_b = st.columns(2)
+
+    with sig_col_a:
+        signal_short_window = st.number_input(
+            "Signal Short MA",
+            min_value=5,
+            max_value=100,
+            value=20,
+            step=5,
+            key="signal_short_window"
+        )
+
+    with sig_col_b:
+        signal_long_window = st.number_input(
+            "Signal Long MA",
+            min_value=20,
+            max_value=300,
+            value=50,
+            step=10,
+            key="signal_long_window"
+        )
+
+else:
+    signal_short_window = 20
+    signal_long_window = 50
+
+if signal_strategy == "rsi":
+    rsi_col_a, rsi_col_b, rsi_col_c = st.columns(3)
+
+    with rsi_col_a:
+        signal_rsi_window = st.number_input(
+            "Signal RSI Window",
+            min_value=5,
+            max_value=50,
+            value=14,
+            step=1,
+            key="signal_rsi_window"
+        )
+
+    with rsi_col_b:
+        signal_oversold_level = st.number_input(
+            "Signal Oversold Level",
+            min_value=5,
+            max_value=50,
+            value=30,
+            step=5,
+            key="signal_oversold_level"
+        )
+
+    with rsi_col_c:
+        signal_overbought_level = st.number_input(
+            "Signal Overbought Level",
+            min_value=50,
+            max_value=95,
+            value=70,
+            step=5,
+            key="signal_overbought_level"
+        )
+
+else:
+    signal_rsi_window = 14
+    signal_oversold_level = 30
+    signal_overbought_level = 70
+
+if signal_strategy == "bollinger_bands":
+    bb_col_a, bb_col_b = st.columns(2)
+
+    with bb_col_a:
+        signal_bollinger_window = st.number_input(
+            "Signal Bollinger Window",
+            min_value=10,
+            max_value=100,
+            value=20,
+            step=5,
+            key="signal_bollinger_window"
+        )
+
+    with bb_col_b:
+        signal_bollinger_std = st.number_input(
+            "Signal Bollinger Std",
+            min_value=1.0,
+            max_value=4.0,
+            value=2.0,
+            step=0.5,
+            key="signal_bollinger_std"
+        )
+
+else:
+    signal_bollinger_window = 20
+    signal_bollinger_std = 2.0
+
+if signal_strategy == "momentum":
+    signal_momentum_window = st.number_input(
+        "Signal Momentum Window",
+        min_value=10,
+        max_value=200,
+        value=60,
+        step=10,
+        key="signal_momentum_window"
+    )
+else:
+    signal_momentum_window = 60
+
+if signal_strategy == "breakout":
+    breakout_col_a, breakout_col_b = st.columns(2)
+
+    with breakout_col_a:
+        signal_breakout_window = st.number_input(
+            "Signal Breakout Window",
+            min_value=20,
+            max_value=250,
+            value=50,
+            step=10,
+            key="signal_breakout_window"
+        )
+
+    with breakout_col_b:
+        signal_exit_window = st.number_input(
+            "Signal Exit Window",
+            min_value=10,
+            max_value=150,
+            value=20,
+            step=10,
+            key="signal_exit_window"
+        )
+
+else:
+    signal_breakout_window = 50
+    signal_exit_window = 20
+
+generate_signal_button = st.button(
+    "Generate Latest Signal",
+    key="generate_latest_signal_button"
+)
+
+if generate_signal_button:
+    try:
+        with st.spinner("Generating latest strategy signal..."):
+            signal_result, signal_data, signal_summary, signal_trade_log = generate_live_signal(
+                ticker=signal_ticker,
+                strategy_name=signal_strategy,
+                start_date=signal_start_date,
+                end_date=None,
+                initial_capital=10000,
+                position_size=signal_position_size,
+                trading_cost=signal_trading_cost,
+                regime_window=int(signal_regime_window),
+                short_window=int(signal_short_window),
+                long_window=int(signal_long_window),
+                rsi_window=int(signal_rsi_window),
+                oversold_level=int(signal_oversold_level),
+                overbought_level=int(signal_overbought_level),
+                bollinger_window=int(signal_bollinger_window),
+                bollinger_std=float(signal_bollinger_std),
+                momentum_window=int(signal_momentum_window),
+                breakout_window=int(signal_breakout_window),
+                exit_window=int(signal_exit_window)
+            )
+
+        st.session_state["latest_live_signal"] = signal_result
+
+        st.subheader("Latest Signal Result")
+
+        action = signal_result["action"]
+
+        if action == "BUY":
+            st.success("Signal Action: BUY")
+        elif action == "SELL":
+            st.warning("Signal Action: SELL")
+        elif action == "HOLD":
+            st.info("Signal Action: HOLD")
+        else:
+            st.info("Signal Action: STAY IN CASH")
+
+        sig_metric1, sig_metric2, sig_metric3, sig_metric4 = st.columns(4)
+
+        sig_metric1.metric("Ticker", signal_result["ticker"])
+        sig_metric2.metric("Strategy", signal_result["strategy_label"])
+        sig_metric3.metric("Latest Close", f"${signal_result['latest_close']:,.2f}")
+        sig_metric4.metric("Latest Date", signal_result["latest_date"])
+
+        st.write("Reason:", signal_result["reason"])
+
+        with st.expander("Full Signal Details"):
+            st.json(signal_result)
+
+        st.subheader("Signal Strategy Summary")
+        st.dataframe(signal_summary.round(2), use_container_width=True)
+
+        log_audit_event(
+            event_type="LIVE_SIGNAL_GENERATED",
+            ticker=signal_result["ticker"],
+            strategy_name=signal_result["strategy_label"],
+            signal=signal_result["action"],
+            broker_name="ibkr",
+            execution_mode=EXECUTION_MODE,
+            broker_status="not_submitted",
+            message="Latest live broker signal generated from dashboard.",
+            details=signal_result
+        )
+
+    except Exception as e:
+        st.error("Could not generate latest signal.")
+        st.exception(e)
 
 
 # ==============================
