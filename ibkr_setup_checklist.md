@@ -58,3 +58,13 @@
 - [ ] Emergency stop verified
 - [ ] Manual confirmation verified
 - [ ] Very small capital plan prepared
+
+## Lesson 66 Connection Test
+
+- [ ] TWS or IB Gateway opened
+- [ ] Logged into paper trading environment
+- [ ] API socket clients enabled
+- [ ] Read-Only API enabled for first connection test
+- [ ] Port confirmed
+- [ ] test_ibkr_connection.py created
+- [ ] Connection test completed successfully
