@@ -158,3 +158,14 @@
 - [ ] Paper order cancellation tested
 - [ ] No live orders placed
 - [ ] Returned .env to safe mode after testing
+
+## Lesson 75 Broker Risk Manager
+
+- [ ] RiskManager updated with broker-specific approval checks
+- [ ] Unsupported tickers blocked
+- [ ] Missing manual confirmation blocked
+- [ ] Oversized position blocked
+- [ ] Short selling blocked
+- [ ] Existing-position SELL allowed
+- [ ] IBKR paper order script connected to risk manager
+- [ ] No live trading enabled
