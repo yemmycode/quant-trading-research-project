@@ -146,3 +146,15 @@
 - [ ] Order status checked successfully
 - [ ] No orders placed
 - [ ] No orders cancelled
+
+## Lesson 74 IBKR Paper Order Cancellation
+
+- [ ] cancel_order method added to IBKRBroker
+- [ ] test_ibkr_cancel_order.py created
+- [ ] TWS Paper or IB Gateway open
+- [ ] API socket enabled
+- [ ] Read-Only API unchecked only for paper cancellation test
+- [ ] Open paper orders listed successfully
+- [ ] Paper order cancellation tested
+- [ ] No live orders placed
+- [ ] Returned .env to safe mode after testing

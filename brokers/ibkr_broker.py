@@ -417,6 +417,42 @@ class IBKRBroker(BaseBroker):
         }
 
     def cancel_order(self, order_id):
-        raise NotImplementedError(
-            "Cancel order workflow will be added in Lesson 74."
-        )
+        """
+        Cancel an open IBKR paper order by order ID.
+
+        This only works for open orders visible in the current IBKR session.
+        """
+
+        self._ensure_paper_order_allowed()
+        self.connect()
+
+        order_id = int(order_id)
+
+        open_trades = self.ib.openTrades()
+
+        for trade in open_trades:
+            order = trade.order
+            contract = trade.contract
+            status = trade.orderStatus
+
+            if getattr(order, "orderId", None) == order_id:
+                self.ib.cancelOrder(order)
+                self.ib.sleep(2)
+
+                return {
+                    "cancel_requested": True,
+                    "order_id": getattr(order, "orderId", None),
+                    "symbol": getattr(contract, "symbol", None),
+                    "action": getattr(order, "action", None),
+                    "order_type": getattr(order, "orderType", None),
+                    "quantity": getattr(order, "totalQuantity", None),
+                    "limit_price": getattr(order, "lmtPrice", None),
+                    "previous_status": getattr(status, "status", None),
+                    "message": "Cancel request sent to IBKR paper account."
+                }
+
+        return {
+            "cancel_requested": False,
+            "order_id": order_id,
+            "message": "No open order found with this order ID."
+        }
