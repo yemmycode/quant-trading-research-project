@@ -77,3 +77,12 @@
 - [ ] API socket enabled
 - [ ] Account summary retrieved successfully
 - [ ] No orders placed
+
+## Lesson 68 Positions Test
+
+- [ ] test_ibkr_positions.py created
+- [ ] TWS or IB Gateway open
+- [ ] Logged into paper trading
+- [ ] API socket enabled
+- [ ] Positions retrieved successfully
+- [ ] No orders placed
