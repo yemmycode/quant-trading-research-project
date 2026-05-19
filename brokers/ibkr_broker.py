@@ -1,47 +1,127 @@
 
+import sys
+from pathlib import Path
+
+from ib_insync import IB
+
 from base_broker import BaseBroker
 from ibkr_contracts import build_us_stock_contract, describe_contract
 from ibkr_orders import build_order, describe_order
 
 
+PROJECT_PATH = Path(__file__).resolve().parent.parent
+
+if str(PROJECT_PATH) not in sys.path:
+    sys.path.append(str(PROJECT_PATH))
+
+from config import (
+    IBKR_HOST,
+    IBKR_PORT,
+    IBKR_CLIENT_ID,
+    IBKR_TRADING_MODE,
+    IBKR_READ_ONLY,
+    IBKR_ENABLE_ORDERS,
+    EXECUTION_MODE,
+    ALLOW_LIVE_TRADING,
+    validate_ibkr_settings
+)
+
+
 class IBKRBroker(BaseBroker):
     """
-    Placeholder adapter for Interactive Brokers.
+    Interactive Brokers adapter.
 
-    This adapter is not connected yet.
-    It exists so the platform can safely recognize IBKR as a future broker option.
+    Current supported mode:
+    - IBKR paper account connection
+    - contract building
+    - order object building
+    - paper order submission only when safety settings allow it
 
-    Current safe capabilities:
-    - Build supported IBKR stock/ETF contracts
-    - Build supported IBKR order objects
-    - Describe contracts and orders
-
-    It does not connect to IBKR yet.
-    It does not submit orders yet.
+    Live trading remains blocked unless explicitly enabled later.
     """
 
     def __init__(self, paper_mode=True):
         self.paper_mode = paper_mode
-        self.configured = False
+        self.ib = IB()
+
+    # ==============================
+    # Connection Methods
+    # ==============================
+
+    def connect(self):
+        """
+        Connect to IBKR TWS / IB Gateway.
+        """
+
+        validate_ibkr_settings()
+
+        if not self.ib.isConnected():
+            self.ib.connect(
+                host=IBKR_HOST,
+                port=IBKR_PORT,
+                clientId=IBKR_CLIENT_ID,
+                timeout=10
+            )
+
+        return self.ib.isConnected()
+
+    def disconnect(self):
+        """
+        Disconnect safely from IBKR.
+        """
+
+        if self.ib.isConnected():
+            self.ib.disconnect()
+
+    def is_connected(self):
+        return self.ib.isConnected()
+
+    # ==============================
+    # Safety Checks
+    # ==============================
+
+    def _ensure_paper_order_allowed(self):
+        """
+        Ensure order submission is allowed only for IBKR paper mode.
+        """
+
+        validate_ibkr_settings()
+
+        if EXECUTION_MODE != "BROKER_PAPER":
+            raise PermissionError(
+                f"IBKR paper orders require EXECUTION_MODE='BROKER_PAPER'. "
+                f"Current EXECUTION_MODE={EXECUTION_MODE}"
+            )
+
+        if IBKR_TRADING_MODE != "paper":
+            raise PermissionError(
+                f"IBKR_TRADING_MODE must be 'paper'. Current value: {IBKR_TRADING_MODE}"
+            )
+
+        if ALLOW_LIVE_TRADING:
+            raise PermissionError(
+                "ALLOW_LIVE_TRADING is True. Paper order test is blocked for safety."
+            )
+
+        if IBKR_READ_ONLY:
+            raise PermissionError(
+                "IBKR_READ_ONLY is True. Disable Read-Only API only for paper order testing."
+            )
+
+        if not IBKR_ENABLE_ORDERS:
+            raise PermissionError(
+                "IBKR_ENABLE_ORDERS is False. Set it to true only for IBKR paper order testing."
+            )
 
     # ==============================
     # Contract Builder Methods
     # ==============================
 
     def build_contract(self, ticker):
-        """
-        Build a supported IBKR contract for a ticker.
-        This does not connect to IBKR.
-        """
-
         contract = build_us_stock_contract(ticker)
         return contract
 
     def describe_supported_contract(self, ticker):
-        """
-        Return a readable contract description for a supported ticker.
-        """
-
         contract = self.build_contract(ticker)
         return describe_contract(contract)
 
@@ -56,11 +136,6 @@ class IBKRBroker(BaseBroker):
         order_type="LMT",
         limit_price=None
     ):
-        """
-        Build a supported IBKR order object.
-        This does not connect to IBKR and does not submit the order.
-        """
-
         order = build_order(
             side=side,
             quantity=quantity,
@@ -77,11 +152,6 @@ class IBKRBroker(BaseBroker):
         order_type="LMT",
         limit_price=None
     ):
-        """
-        Return a readable order description.
-        This does not connect to IBKR and does not submit the order.
-        """
-
         order = self.build_ibkr_order(
             side=side,
             quantity=quantity,
@@ -92,30 +162,155 @@ class IBKRBroker(BaseBroker):
         return describe_order(order)
 
     # ==============================
-    # Not Yet Configured Methods
+    # Broker Interface Methods
     # ==============================
 
-    def _not_configured(self):
-        raise NotImplementedError(
-            "IBKR broker adapter is not configured for broker connection yet. "
-            "Use PaperBroker for simulated trading. "
-            "IBKR paper trading execution will be added in a later lesson."
-        )
-
     def get_account_info(self):
-        self._not_configured()
+        """
+        Read basic account information from IBKR.
+        """
+
+        self.connect()
+
+        accounts = self.ib.managedAccounts()
+
+        if not accounts:
+            return {
+                "connected": True,
+                "accounts": [],
+                "message": "No managed accounts returned."
+            }
+
+        account_id = accounts[0]
+        summary = self.ib.accountSummary(account=account_id)
+
+        account_values = {}
+
+        for item in summary:
+            account_values[item.tag] = {
+                "value": item.value,
+                "currency": item.currency
+            }
+
+        return {
+            "connected": True,
+            "account_id": account_id,
+            "values": account_values
+        }
 
     def get_positions(self):
-        self._not_configured()
+        """
+        Read current positions from IBKR.
+        """
+
+        self.connect()
+
+        positions = self.ib.positions()
+        position_rows = []
+
+        for position in positions:
+            contract = position.contract
+
+            position_rows.append({
+                "account": position.account,
+                "symbol": getattr(contract, "symbol", ""),
+                "secType": getattr(contract, "secType", ""),
+                "exchange": getattr(contract, "exchange", ""),
+                "currency": getattr(contract, "currency", ""),
+                "quantity": position.position,
+                "average_cost": position.avgCost
+            })
+
+        return position_rows
 
     def get_latest_price(self, ticker):
-        self._not_configured()
+        """
+        Read delayed/latest market data from IBKR.
+        """
 
-    def submit_order(self, ticker, side, quantity, order_type="market"):
-        self._not_configured()
+        self.connect()
+
+        contract = self.build_contract(ticker)
+        qualified_contracts = self.ib.qualifyContracts(contract)
+
+        if not qualified_contracts:
+            raise ValueError(f"Could not qualify IBKR contract for {ticker}")
+
+        contract = qualified_contracts[0]
+
+        self.ib.reqMarketDataType(3)
+        ticker_data = self.ib.reqMktData(contract, "", False, False)
+
+        self.ib.sleep(5)
+
+        price = ticker_data.marketPrice()
+
+        if price is None or price != price or price <= 0:
+            price = ticker_data.last
+
+        if price is None or price != price or price <= 0:
+            price = ticker_data.close
+
+        if price is None or price != price or price <= 0:
+            raise ValueError(f"No usable IBKR market price found for {ticker}")
+
+        self.ib.cancelMktData(contract)
+
+        return float(price)
+
+    def submit_order(self, ticker, side, quantity, order_type="LMT", limit_price=None):
+        """
+        Submit an order to IBKR paper trading only.
+
+        This is blocked unless:
+        - EXECUTION_MODE = BROKER_PAPER
+        - IBKR_TRADING_MODE = paper
+        - IBKR_READ_ONLY = False
+        - IBKR_ENABLE_ORDERS = True
+        - ALLOW_LIVE_TRADING = False
+        """
+
+        self._ensure_paper_order_allowed()
+        self.connect()
+
+        contract = self.build_contract(ticker)
+
+        qualified_contracts = self.ib.qualifyContracts(contract)
+
+        if not qualified_contracts:
+            raise ValueError(f"Could not qualify IBKR contract for {ticker}")
+
+        contract = qualified_contracts[0]
+
+        order = self.build_ibkr_order(
+            side=side,
+            quantity=quantity,
+            order_type=order_type,
+            limit_price=limit_price
+        )
+
+        trade = self.ib.placeOrder(contract, order)
+
+        self.ib.sleep(3)
+
+        return {
+            "ticker": ticker,
+            "contract": describe_contract(contract),
+            "order": describe_order(order),
+            "order_id": getattr(trade.order, "orderId", None),
+            "order_status": getattr(trade.orderStatus, "status", None),
+            "filled": getattr(trade.orderStatus, "filled", None),
+            "remaining": getattr(trade.orderStatus, "remaining", None),
+            "avg_fill_price": getattr(trade.orderStatus, "avgFillPrice", None),
+            "message": "IBKR paper order submitted. Check TWS paper account/order panel."
+        }
 
     def cancel_order(self, order_id):
-        self._not_configured()
+        raise NotImplementedError(
+            "Cancel order workflow will be added in Lesson 74."
+        )
 
     def get_order_status(self, order_id):
-        self._not_configured()
+        raise NotImplementedError(
+            "Order status monitoring will be added in Lesson 73."
+        )

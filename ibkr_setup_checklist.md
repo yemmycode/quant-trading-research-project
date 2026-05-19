@@ -117,3 +117,19 @@
 - [ ] Order builder test passed
 - [ ] No broker connection attempted
 - [ ] No orders placed
+
+## Lesson 72 IBKR Paper Order Submission
+
+- [ ] EXECUTION_MODE set to BROKER_PAPER
+- [ ] DEFAULT_BROKER set to ibkr
+- [ ] ALLOW_LIVE_TRADING remains False
+- [ ] IBKR_TRADING_MODE is paper
+- [ ] IBKR_READ_ONLY is false only for paper order test
+- [ ] IBKR_ENABLE_ORDERS is true
+- [ ] TWS Paper is open
+- [ ] API socket enabled
+- [ ] Read-Only API unchecked in TWS for paper order test
+- [ ] test_ibkr_submit_paper_order.py created
+- [ ] Paper limit order submitted successfully
+- [ ] Paper test order cancelled manually in TWS
+- [ ] No live orders placed

@@ -63,7 +63,7 @@ RSI_PARAMETER_SETS = [
 # BROKER_PAPER = connected broker paper/sandbox trading
 # LIVE_MANUAL = live broker trading with manual confirmation only
 
-EXECUTION_MODE = "BACKTEST"
+EXECUTION_MODE = "BROKER_PAPER"
 
 SUPPORTED_EXECUTION_MODES = [
     "BACKTEST",
@@ -71,7 +71,7 @@ SUPPORTED_EXECUTION_MODES = [
     "LIVE_MANUAL"
 ]
 
-DEFAULT_BROKER = "paper"
+DEFAULT_BROKER = "ibkr"
 
 SUPPORTED_BROKERS = [
     "paper",
