@@ -63,6 +63,13 @@ def get_broker(
                 "IBKR live mode is blocked because ALLOW_LIVE_TRADING is False."
             )
 
+        import asyncio
+
+        try:
+            asyncio.get_event_loop()
+        except RuntimeError:
+            asyncio.set_event_loop(asyncio.new_event_loop())
+
         from ibkr_broker import IBKRBroker
 
         return IBKRBroker(paper_mode=paper_mode)
