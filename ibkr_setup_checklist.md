@@ -169,3 +169,13 @@
 - [ ] Existing-position SELL allowed
 - [ ] IBKR paper order script connected to risk manager
 - [ ] No live trading enabled
+
+## Lesson 76 Trade Audit Log
+
+- [ ] trade_audit.py created
+- [ ] test_trade_audit.py created
+- [ ] trade audit logger tested
+- [ ] IBKR paper order submission script connected to audit logger
+- [ ] view_trade_audit_log.py created
+- [ ] logs folder excluded from GitHub
+- [ ] No live trading enabled
