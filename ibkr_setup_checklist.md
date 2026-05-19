@@ -179,3 +179,15 @@
 - [ ] view_trade_audit_log.py created
 - [ ] logs folder excluded from GitHub
 - [ ] No live trading enabled
+
+## Lesson 77 Persistent Emergency Stop
+
+- [ ] safety_manager.py created
+- [ ] test_safety_manager.py created
+- [ ] Persistent emergency stop JSON state added
+- [ ] Risk manager connected to persistent emergency stop
+- [ ] Streamlit emergency stop controls added
+- [ ] safety folder excluded from GitHub
+- [ ] Emergency stop activation tested
+- [ ] Emergency stop deactivation tested
+- [ ] Broker order blocked while emergency stop is active

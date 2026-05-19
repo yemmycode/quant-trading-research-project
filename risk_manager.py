@@ -1,5 +1,6 @@
 
 from dataclasses import dataclass
+from safety_manager import is_emergency_stop_active, get_emergency_stop_reason
 
 
 @dataclass
@@ -110,10 +111,17 @@ class RiskManager:
 
         ticker = self._normalize_ticker(ticker)
 
-        if self.emergency_stop:
+        persistent_emergency_stop = is_emergency_stop_active()
+
+        if self.emergency_stop or persistent_emergency_stop:
             return self._block(
                 "Blocked: emergency stop is active.",
-                {"ticker": ticker}
+                {
+                    "ticker": ticker,
+                    "config_emergency_stop": self.emergency_stop,
+                    "persistent_emergency_stop": persistent_emergency_stop,
+                    "reason": get_emergency_stop_reason()
+                }
             )
 
         if live_order and not self.live_trading_enabled:
@@ -236,8 +244,18 @@ class RiskManager:
             "live_order": live_order
         }
 
-        if self.emergency_stop:
-            return self._block("Blocked: emergency stop is active.", details)
+        persistent_emergency_stop = is_emergency_stop_active()
+
+        if self.emergency_stop or persistent_emergency_stop:
+            return self._block(
+                "Blocked: emergency stop is active.",
+                {
+                    **details,
+                    "config_emergency_stop": self.emergency_stop,
+                    "persistent_emergency_stop": persistent_emergency_stop,
+                    "reason": get_emergency_stop_reason()
+                }
+            )
 
         if execution_mode not in ["BROKER_PAPER", "LIVE_MANUAL"]:
             return self._block(

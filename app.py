@@ -1,3 +1,4 @@
+from safety_manager import read_emergency_stop_state, activate_emergency_stop, deactivate_emergency_stop, is_emergency_stop_active
 
 import sys
 from pathlib import Path
@@ -158,6 +159,49 @@ st.subheader("Broker Readiness")
 
 broker_status_data = pd.DataFrame(list_available_brokers())
 st.dataframe(broker_status_data, use_container_width=True)
+
+
+st.subheader("Persistent Emergency Stop")
+
+emergency_state = read_emergency_stop_state()
+
+if emergency_state.get("active", False):
+    st.error(f"EMERGENCY STOP ACTIVE: {emergency_state.get('reason', '')}")
+else:
+    st.success("Emergency stop is inactive.")
+
+st.json(emergency_state)
+
+stop_col1, stop_col2 = st.columns(2)
+
+with stop_col1:
+    emergency_reason = st.text_input(
+        "Emergency Stop Reason",
+        value="Manual dashboard emergency stop.",
+        key="emergency_stop_reason"
+    )
+
+    if st.button("Activate Emergency Stop"):
+        activate_emergency_stop(
+            reason=emergency_reason,
+            updated_by="streamlit_dashboard"
+        )
+        st.rerun()
+
+with stop_col2:
+    deactivate_reason = st.text_input(
+        "Deactivation Reason",
+        value="Manual dashboard deactivation.",
+        key="emergency_stop_deactivate_reason"
+    )
+
+    if st.button("Deactivate Emergency Stop"):
+        deactivate_emergency_stop(
+            reason=deactivate_reason,
+            updated_by="streamlit_dashboard"
+        )
+        st.rerun()
+
 
 
 

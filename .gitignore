@@ -34,3 +34,6 @@ charts/
 .vscode/
 # Local trade audit logs
 trade_audit_log.csv
+# Local safety runtime state
+safety/
+emergency_stop.json
