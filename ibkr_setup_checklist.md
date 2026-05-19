@@ -97,3 +97,12 @@
 - [ ] Contract qualified successfully
 - [ ] Market data retrieved successfully
 - [ ] No orders placed
+
+## Lesson 70 Contract Builder
+
+- [ ] ibkr_contracts.py created
+- [ ] US stock/ETF contract builder created
+- [ ] Allowed ticker validation active
+- [ ] Contract builder test script created
+- [ ] Contract builder test passed
+- [ ] No orders placed

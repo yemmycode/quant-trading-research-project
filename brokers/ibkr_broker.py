@@ -1,5 +1,6 @@
 
 from base_broker import BaseBroker
+from ibkr_contracts import build_us_stock_contract, describe_contract
 
 
 class IBKRBroker(BaseBroker):
@@ -18,6 +19,24 @@ class IBKRBroker(BaseBroker):
     def __init__(self, paper_mode=True):
         self.paper_mode = paper_mode
         self.configured = False
+
+
+    def build_contract(self, ticker):
+        """
+        Build a supported IBKR contract for a ticker.
+        This does not connect to IBKR.
+        """
+
+        contract = build_us_stock_contract(ticker)
+        return contract
+
+    def describe_supported_contract(self, ticker):
+        """
+        Return a readable contract description for a supported ticker.
+        """
+
+        contract = self.build_contract(ticker)
+        return describe_contract(contract)
 
     def _not_configured(self):
         raise NotImplementedError(
