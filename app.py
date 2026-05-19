@@ -1,3 +1,4 @@
+from trade_audit import log_audit_event
 from safety_manager import read_emergency_stop_state, activate_emergency_stop, deactivate_emergency_stop, is_emergency_stop_active
 
 import sys
@@ -1522,6 +1523,314 @@ if run_optimization_button:
                 data=optimization_csv,
                 file_name=f"{opt_ticker}_parameter_optimization_results.csv",
                 mime="text/csv"
+            )
+
+
+
+
+# ==============================
+# Broker Manual Approval Ticket
+# ==============================
+
+st.markdown("---")
+st.header("Broker Manual Approval Ticket")
+st.write(
+    "Submit IBKR paper orders only after emergency-stop check, "
+    "risk-manager approval, and manual confirmation."
+)
+
+st.warning(
+    "This section is for IBKR PAPER trading only. "
+    "Live trading remains disabled unless explicitly enabled later."
+)
+
+ticket_emergency_state = read_emergency_stop_state()
+
+if ticket_emergency_state.get("active", False):
+    st.error(
+        f"Emergency stop is ACTIVE. Broker orders are blocked. "
+        f"Reason: {ticket_emergency_state.get('reason', '')}"
+    )
+else:
+    st.success("Emergency stop is inactive.")
+
+ticket_col1, ticket_col2, ticket_col3 = st.columns(3)
+
+with ticket_col1:
+    broker_ticket_ticker = st.selectbox(
+        "Broker Ticket Ticker",
+        ["SPY", "QQQ", "AAPL", "MSFT"],
+        key="broker_ticket_ticker"
+    )
+
+with ticket_col2:
+    broker_ticket_side = st.selectbox(
+        "Side",
+        ["BUY", "SELL"],
+        key="broker_ticket_side"
+    )
+
+with ticket_col3:
+    broker_ticket_asset_type = st.selectbox(
+        "Asset Type",
+        ["etf", "stock"],
+        key="broker_ticket_asset_type"
+    )
+
+ticket_col4, ticket_col5, ticket_col6 = st.columns(3)
+
+with ticket_col4:
+    broker_ticket_quantity = st.number_input(
+        "Quantity",
+        min_value=0.0,
+        value=1.0,
+        step=1.0,
+        key="broker_ticket_quantity"
+    )
+
+with ticket_col5:
+    broker_ticket_order_type = st.selectbox(
+        "Order Type",
+        ["LMT", "MKT"],
+        index=0,
+        key="broker_ticket_order_type"
+    )
+
+with ticket_col6:
+    broker_ticket_limit_price = st.number_input(
+        "Limit Price",
+        min_value=0.0,
+        value=1.00,
+        step=0.01,
+        format="%.2f",
+        key="broker_ticket_limit_price"
+    )
+
+if broker_ticket_order_type == "MKT":
+    st.info(
+        "Market order selected. For safety, early broker testing should normally use limit orders."
+    )
+
+estimated_ticket_price = broker_ticket_limit_price if broker_ticket_order_type == "LMT" else 0.0
+estimated_ticket_value = broker_ticket_quantity * estimated_ticket_price
+
+st.subheader("Order Preview")
+
+preview_col1, preview_col2, preview_col3, preview_col4 = st.columns(4)
+
+preview_col1.metric("Ticker", broker_ticket_ticker)
+preview_col2.metric("Side", broker_ticket_side)
+preview_col3.metric("Quantity", f"{broker_ticket_quantity:,.2f}")
+preview_col4.metric("Est. Order Value", f"${estimated_ticket_value:,.2f}")
+
+manual_broker_confirmation = st.checkbox(
+    "I confirm this is an IBKR PAPER order and I understand it may be submitted to the paper trading account.",
+    key="manual_broker_confirmation"
+)
+
+run_ticket_risk_check = st.button(
+    "Run Broker Risk Check",
+    key="run_broker_ticket_risk_check"
+)
+
+if run_ticket_risk_check:
+    risk_manager = create_risk_manager_from_config()
+
+    # For now, this dashboard ticket does not yet calculate real broker position quantity.
+    # We use 0 for BUY checks and 0 for SELL checks unless you manually update later.
+    current_position_quantity = 0
+
+    risk_result = risk_manager.approve_broker_order(
+        ticker=broker_ticket_ticker,
+        side=broker_ticket_side,
+        quantity=broker_ticket_quantity,
+        order_type=broker_ticket_order_type,
+        asset_type=broker_ticket_asset_type,
+        proposed_position_size=0.01,
+        estimated_price=estimated_ticket_price if estimated_ticket_price > 0 else None,
+        estimated_order_value=estimated_ticket_value if estimated_ticket_value > 0 else None,
+        current_position_quantity=current_position_quantity,
+        manual_confirmation_given=manual_broker_confirmation,
+        broker_name="ibkr",
+        execution_mode=EXECUTION_MODE,
+        live_order=False
+    )
+
+    st.session_state["broker_ticket_risk_result"] = {
+        "approved": risk_result.approved,
+        "reason": risk_result.reason,
+        "details": risk_result.details
+    }
+
+    log_audit_event(
+        event_type="DASHBOARD_BROKER_RISK_CHECK",
+        ticker=broker_ticket_ticker,
+        side=broker_ticket_side,
+        quantity=broker_ticket_quantity,
+        order_type=broker_ticket_order_type,
+        limit_price=broker_ticket_limit_price,
+        risk_approved=risk_result.approved,
+        risk_reason=risk_result.reason,
+        manual_confirmation=manual_broker_confirmation,
+        broker_name="ibkr",
+        execution_mode=EXECUTION_MODE,
+        broker_status="not_submitted",
+        message="Dashboard broker ticket risk check completed.",
+        details=risk_result.details
+    )
+
+if "broker_ticket_risk_result" in st.session_state:
+    risk_result_data = st.session_state["broker_ticket_risk_result"]
+
+    st.subheader("Risk Check Result")
+
+    if risk_result_data["approved"]:
+        st.success(risk_result_data["reason"])
+    else:
+        st.error(risk_result_data["reason"])
+
+    with st.expander("Risk Check Details"):
+        st.json(risk_result_data["details"])
+
+st.subheader("Submit IBKR Paper Order")
+
+st.caption(
+    "Submission is blocked unless risk check is approved, emergency stop is inactive, "
+    "manual confirmation is checked, and IBKR paper order settings allow submission."
+)
+
+submit_broker_order = st.button(
+    "Submit IBKR Paper Order",
+    key="submit_ibkr_paper_order_button"
+)
+
+if submit_broker_order:
+    risk_result_data = st.session_state.get("broker_ticket_risk_result")
+
+    if ticket_emergency_state.get("active", False):
+        st.error("Order blocked because emergency stop is active.")
+
+        log_audit_event(
+            event_type="DASHBOARD_ORDER_BLOCKED_EMERGENCY_STOP",
+            ticker=broker_ticket_ticker,
+            side=broker_ticket_side,
+            quantity=broker_ticket_quantity,
+            order_type=broker_ticket_order_type,
+            limit_price=broker_ticket_limit_price,
+            manual_confirmation=manual_broker_confirmation,
+            broker_name="ibkr",
+            execution_mode=EXECUTION_MODE,
+            broker_status="blocked",
+            message="Dashboard IBKR paper order blocked by emergency stop.",
+            details=ticket_emergency_state
+        )
+
+    elif not manual_broker_confirmation:
+        st.error("Order blocked because manual confirmation is not checked.")
+
+        log_audit_event(
+            event_type="DASHBOARD_ORDER_BLOCKED_NO_CONFIRMATION",
+            ticker=broker_ticket_ticker,
+            side=broker_ticket_side,
+            quantity=broker_ticket_quantity,
+            order_type=broker_ticket_order_type,
+            limit_price=broker_ticket_limit_price,
+            manual_confirmation=False,
+            broker_name="ibkr",
+            execution_mode=EXECUTION_MODE,
+            broker_status="blocked",
+            message="Dashboard IBKR paper order blocked because manual confirmation was missing."
+        )
+
+    elif not risk_result_data:
+        st.error("Please run the Broker Risk Check before submitting.")
+
+    elif not risk_result_data.get("approved", False):
+        st.error("Order blocked because the risk check was not approved.")
+
+        log_audit_event(
+            event_type="DASHBOARD_ORDER_BLOCKED_RISK_CHECK",
+            ticker=broker_ticket_ticker,
+            side=broker_ticket_side,
+            quantity=broker_ticket_quantity,
+            order_type=broker_ticket_order_type,
+            limit_price=broker_ticket_limit_price,
+            risk_approved=False,
+            risk_reason=risk_result_data.get("reason"),
+            manual_confirmation=manual_broker_confirmation,
+            broker_name="ibkr",
+            execution_mode=EXECUTION_MODE,
+            broker_status="blocked",
+            message="Dashboard IBKR paper order blocked by risk check.",
+            details=risk_result_data
+        )
+
+    else:
+        try:
+            broker = get_broker("ibkr")
+
+            if broker_ticket_order_type == "LMT":
+                broker_result = broker.submit_order(
+                    ticker=broker_ticket_ticker,
+                    side=broker_ticket_side,
+                    quantity=broker_ticket_quantity,
+                    order_type=broker_ticket_order_type,
+                    limit_price=broker_ticket_limit_price
+                )
+            else:
+                broker_result = broker.submit_order(
+                    ticker=broker_ticket_ticker,
+                    side=broker_ticket_side,
+                    quantity=broker_ticket_quantity,
+                    order_type=broker_ticket_order_type,
+                    limit_price=None
+                )
+
+            st.success("IBKR paper order submitted.")
+            st.json(broker_result)
+
+            log_audit_event(
+                event_type="DASHBOARD_IBKR_PAPER_ORDER_SUBMITTED",
+                ticker=broker_ticket_ticker,
+                side=broker_ticket_side,
+                quantity=broker_ticket_quantity,
+                order_type=broker_ticket_order_type,
+                limit_price=broker_ticket_limit_price,
+                risk_approved=True,
+                risk_reason=risk_result_data.get("reason"),
+                manual_confirmation=manual_broker_confirmation,
+                broker_name="ibkr",
+                execution_mode=EXECUTION_MODE,
+                order_id=broker_result.get("order_id"),
+                broker_status=broker_result.get("order_status"),
+                message="Dashboard IBKR paper order submitted.",
+                details=broker_result
+            )
+
+            try:
+                broker.disconnect()
+            except Exception:
+                pass
+
+        except Exception as e:
+            st.error("IBKR paper order submission failed or was blocked.")
+            st.exception(e)
+
+            log_audit_event(
+                event_type="DASHBOARD_IBKR_PAPER_ORDER_FAILED",
+                ticker=broker_ticket_ticker,
+                side=broker_ticket_side,
+                quantity=broker_ticket_quantity,
+                order_type=broker_ticket_order_type,
+                limit_price=broker_ticket_limit_price,
+                risk_approved=True,
+                risk_reason=risk_result_data.get("reason"),
+                manual_confirmation=manual_broker_confirmation,
+                broker_name="ibkr",
+                execution_mode=EXECUTION_MODE,
+                broker_status="failed",
+                message="Dashboard IBKR paper order submission failed.",
+                error=e
             )
 
 

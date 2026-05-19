@@ -191,3 +191,15 @@
 - [ ] Emergency stop activation tested
 - [ ] Emergency stop deactivation tested
 - [ ] Broker order blocked while emergency stop is active
+
+## Lesson 78 Broker Manual Approval Ticket
+
+- [ ] Broker Manual Approval Ticket added to Streamlit
+- [ ] Emergency stop displayed before order submission
+- [ ] Manual confirmation checkbox added
+- [ ] Broker risk check button added
+- [ ] Submit IBKR Paper Order button added
+- [ ] Audit logging connected
+- [ ] IBKR paper order tested from dashboard
+- [ ] No live trading enabled
+- [ ] .env returned to safe mode after testing
