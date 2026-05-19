@@ -305,12 +305,118 @@ class IBKRBroker(BaseBroker):
             "message": "IBKR paper order submitted. Check TWS paper account/order panel."
         }
 
+    def get_open_orders(self):
+        """
+        Return currently open IBKR paper orders.
+        """
+
+        self.connect()
+
+        open_trades = self.ib.openTrades()
+
+        rows = []
+
+        for trade in open_trades:
+            contract = trade.contract
+            order = trade.order
+            status = trade.orderStatus
+
+            rows.append({
+                "order_id": getattr(order, "orderId", None),
+                "perm_id": getattr(order, "permId", None),
+                "symbol": getattr(contract, "symbol", None),
+                "sec_type": getattr(contract, "secType", None),
+                "exchange": getattr(contract, "exchange", None),
+                "currency": getattr(contract, "currency", None),
+                "action": getattr(order, "action", None),
+                "order_type": getattr(order, "orderType", None),
+                "quantity": getattr(order, "totalQuantity", None),
+                "limit_price": getattr(order, "lmtPrice", None),
+                "status": getattr(status, "status", None),
+                "filled": getattr(status, "filled", None),
+                "remaining": getattr(status, "remaining", None),
+                "avg_fill_price": getattr(status, "avgFillPrice", None)
+            })
+
+        return rows
+
+    def get_all_trades(self):
+        """
+        Return known IBKR trades for the current API session.
+        """
+
+        self.connect()
+
+        trades = self.ib.trades()
+
+        rows = []
+
+        for trade in trades:
+            contract = trade.contract
+            order = trade.order
+            status = trade.orderStatus
+
+            rows.append({
+                "order_id": getattr(order, "orderId", None),
+                "perm_id": getattr(order, "permId", None),
+                "symbol": getattr(contract, "symbol", None),
+                "sec_type": getattr(contract, "secType", None),
+                "exchange": getattr(contract, "exchange", None),
+                "currency": getattr(contract, "currency", None),
+                "action": getattr(order, "action", None),
+                "order_type": getattr(order, "orderType", None),
+                "quantity": getattr(order, "totalQuantity", None),
+                "limit_price": getattr(order, "lmtPrice", None),
+                "status": getattr(status, "status", None),
+                "filled": getattr(status, "filled", None),
+                "remaining": getattr(status, "remaining", None),
+                "avg_fill_price": getattr(status, "avgFillPrice", None)
+            })
+
+        return rows
+
+    def get_order_status(self, order_id):
+        """
+        Find a specific IBKR paper order status by order ID.
+        """
+
+        self.connect()
+
+        order_id = int(order_id)
+
+        trades = self.ib.trades()
+        open_trades = self.ib.openTrades()
+
+        all_trades = list(trades) + list(open_trades)
+
+        for trade in all_trades:
+            order = trade.order
+            status = trade.orderStatus
+            contract = trade.contract
+
+            if getattr(order, "orderId", None) == order_id:
+                return {
+                    "found": True,
+                    "order_id": getattr(order, "orderId", None),
+                    "perm_id": getattr(order, "permId", None),
+                    "symbol": getattr(contract, "symbol", None),
+                    "action": getattr(order, "action", None),
+                    "order_type": getattr(order, "orderType", None),
+                    "quantity": getattr(order, "totalQuantity", None),
+                    "limit_price": getattr(order, "lmtPrice", None),
+                    "status": getattr(status, "status", None),
+                    "filled": getattr(status, "filled", None),
+                    "remaining": getattr(status, "remaining", None),
+                    "avg_fill_price": getattr(status, "avgFillPrice", None)
+                }
+
+        return {
+            "found": False,
+            "order_id": order_id,
+            "message": "Order ID was not found in current IBKR API session trades/open trades."
+        }
+
     def cancel_order(self, order_id):
         raise NotImplementedError(
             "Cancel order workflow will be added in Lesson 74."
-        )
-
-    def get_order_status(self, order_id):
-        raise NotImplementedError(
-            "Order status monitoring will be added in Lesson 73."
         )

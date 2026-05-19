@@ -133,3 +133,16 @@
 - [ ] Paper limit order submitted successfully
 - [ ] Paper test order cancelled manually in TWS
 - [ ] No live orders placed
+
+## Lesson 73 IBKR Paper Order Status
+
+- [ ] get_open_orders method added
+- [ ] get_all_trades method added
+- [ ] get_order_status method added
+- [ ] test_ibkr_order_status.py created
+- [ ] TWS Paper or IB Gateway open
+- [ ] API socket enabled
+- [ ] Open orders retrieved successfully
+- [ ] Order status checked successfully
+- [ ] No orders placed
+- [ ] No orders cancelled
