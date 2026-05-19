@@ -106,3 +106,14 @@
 - [ ] Contract builder test script created
 - [ ] Contract builder test passed
 - [ ] No orders placed
+
+## Lesson 71 Order Builder
+
+- [ ] ibkr_orders.py created
+- [ ] Market order builder created
+- [ ] Limit order builder created
+- [ ] Order validation active
+- [ ] Order builder test script created
+- [ ] Order builder test passed
+- [ ] No broker connection attempted
+- [ ] No orders placed
