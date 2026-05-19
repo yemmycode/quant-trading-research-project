@@ -86,3 +86,14 @@
 - [ ] API socket enabled
 - [ ] Positions retrieved successfully
 - [ ] No orders placed
+
+## Lesson 69 Market Data Test
+
+- [ ] test_ibkr_market_data.py created
+- [ ] TWS or IB Gateway open
+- [ ] Logged into paper trading
+- [ ] API socket enabled
+- [ ] Delayed market data requested
+- [ ] Contract qualified successfully
+- [ ] Market data retrieved successfully
+- [ ] No orders placed
