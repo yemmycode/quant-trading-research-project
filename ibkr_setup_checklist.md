@@ -213,3 +213,15 @@
 - [ ] Signal action displayed in dashboard
 - [ ] Signal audit event logged
 - [ ] No broker order submitted automatically
+
+## Lesson 80 Signal to Order Proposal
+
+- [ ] order_proposal.py created
+- [ ] test_order_proposal.py created
+- [ ] BUY signal converts to proposed BUY order
+- [ ] SELL signal converts to proposed SELL order only if position exists
+- [ ] HOLD creates no order
+- [ ] STAY IN CASH creates no order
+- [ ] Streamlit proposal section added
+- [ ] Proposal audit logging added
+- [ ] No broker order submitted automatically

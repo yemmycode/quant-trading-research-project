@@ -1,3 +1,4 @@
+from order_proposal import build_order_proposal_from_signal, proposal_to_order_request
 from live_signal import generate_live_signal
 from trade_audit import log_audit_event
 from safety_manager import read_emergency_stop_state, activate_emergency_stop, deactivate_emergency_stop, is_emergency_stop_active
@@ -1811,6 +1812,165 @@ if generate_signal_button:
     except Exception as e:
         st.error("Could not generate latest signal.")
         st.exception(e)
+
+
+
+
+# ==============================
+# Signal to Order Proposal
+# ==============================
+
+st.markdown("---")
+st.header("Signal to Order Proposal")
+st.write(
+    "Convert the latest generated signal into a proposed broker order for manual review. "
+    "This does not submit the order."
+)
+
+latest_signal = st.session_state.get("latest_live_signal")
+
+if not latest_signal:
+    st.info("Generate a live broker signal first before creating an order proposal.")
+else:
+    st.subheader("Latest Signal Available")
+    st.json(latest_signal)
+
+    proposal_col1, proposal_col2, proposal_col3 = st.columns(3)
+
+    with proposal_col1:
+        proposal_account_equity = st.number_input(
+            "Proposal Account Equity",
+            min_value=1000.0,
+            max_value=10000000.0,
+            value=10000.0,
+            step=1000.0,
+            key="proposal_account_equity"
+        )
+
+    with proposal_col2:
+        proposal_position_size = st.slider(
+            "Proposal Position Size",
+            min_value=0.001,
+            max_value=0.10,
+            value=0.01,
+            step=0.001,
+            key="proposal_position_size"
+        )
+
+    with proposal_col3:
+        proposal_current_position_qty = st.number_input(
+            "Current Position Quantity",
+            min_value=0.0,
+            value=0.0,
+            step=1.0,
+            key="proposal_current_position_qty"
+        )
+
+    proposal_col4, proposal_col5, proposal_col6 = st.columns(3)
+
+    with proposal_col4:
+        proposal_order_type = st.selectbox(
+            "Proposal Order Type",
+            ["LMT", "MKT"],
+            index=0,
+            key="proposal_order_type"
+        )
+
+    with proposal_col5:
+        default_limit_price = float(latest_signal.get("latest_close", 1.0) or 1.0)
+
+        proposal_limit_price = st.number_input(
+            "Proposal Limit Price",
+            min_value=0.0,
+            value=default_limit_price,
+            step=0.01,
+            format="%.2f",
+            key="proposal_limit_price"
+        )
+
+    with proposal_col6:
+        proposal_allow_fractional = st.checkbox(
+            "Allow Fractional Quantity",
+            value=False,
+            key="proposal_allow_fractional"
+        )
+
+    create_proposal_button = st.button(
+        "Create Order Proposal from Signal",
+        key="create_order_proposal_from_signal"
+    )
+
+    if create_proposal_button:
+        try:
+            order_proposal = build_order_proposal_from_signal(
+                signal_result=latest_signal,
+                account_equity=proposal_account_equity,
+                position_size=proposal_position_size,
+                order_type=proposal_order_type,
+                limit_price=proposal_limit_price if proposal_order_type == "LMT" else None,
+                allow_fractional=proposal_allow_fractional,
+                current_position_quantity=proposal_current_position_qty,
+                asset_type="etf" if latest_signal.get("ticker") in ["SPY", "QQQ"] else "stock",
+                broker_name="ibkr",
+                execution_mode=EXECUTION_MODE
+            )
+
+            st.session_state["latest_order_proposal"] = order_proposal
+
+            log_audit_event(
+                event_type="ORDER_PROPOSAL_CREATED",
+                ticker=order_proposal.get("ticker"),
+                side=order_proposal.get("side"),
+                quantity=order_proposal.get("quantity"),
+                order_type=order_proposal.get("order_type"),
+                limit_price=order_proposal.get("limit_price"),
+                strategy_name=order_proposal.get("strategy_label"),
+                signal=order_proposal.get("signal_action"),
+                broker_name="ibkr",
+                execution_mode=EXECUTION_MODE,
+                broker_status="not_submitted",
+                message="Order proposal created from live signal.",
+                details=order_proposal
+            )
+
+            if order_proposal.get("actionable"):
+                st.success("Actionable order proposal created.")
+            else:
+                st.info("No actionable order was created from this signal.")
+
+            st.json(order_proposal)
+
+        except Exception as e:
+            st.error("Could not create order proposal.")
+            st.exception(e)
+
+if "latest_order_proposal" in st.session_state:
+    st.subheader("Latest Order Proposal")
+
+    latest_order_proposal = st.session_state["latest_order_proposal"]
+
+    if latest_order_proposal.get("actionable"):
+        st.success("This proposal is actionable and ready for manual review.")
+    else:
+        st.info("This proposal is not actionable.")
+
+    st.json(latest_order_proposal)
+
+    if latest_order_proposal.get("actionable"):
+        try:
+            order_request = proposal_to_order_request(latest_order_proposal)
+
+            st.subheader("Generated Order Request")
+            st.json(order_request)
+
+            st.info(
+                "Next step: review this order request in the Broker Manual Approval Ticket. "
+                "It will still require risk check and manual confirmation before submission."
+            )
+
+        except Exception as e:
+            st.warning("Could not convert proposal into order request.")
+            st.caption(str(e))
 
 
 # ==============================
