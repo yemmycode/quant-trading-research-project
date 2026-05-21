@@ -272,3 +272,15 @@
 - [ ] Daily report CSV download added
 - [ ] No broker connection required
 - [ ] No live trading enabled
+
+## Lesson 85 Weekly Paper Trading Review
+
+- [ ] Weekly review functions added to paper_test_tracker.py
+- [ ] test_weekly_paper_review.py created
+- [ ] Weekly review tested
+- [ ] Weekly Paper Trading Review dashboard section added
+- [ ] Weekly metrics displayed
+- [ ] Weekly recommendation displayed
+- [ ] Weekly review CSV download added
+- [ ] No broker connection required
+- [ ] No live trading enabled

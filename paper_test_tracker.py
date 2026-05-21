@@ -317,3 +317,224 @@ def save_daily_paper_report(test_day=None):
         "report_file": str(report_file),
         "report_result": report_result
     }
+
+
+def get_week_from_test_day(test_day):
+    """
+    Convert test day into week number.
+
+    Days 1-7   -> Week 1
+    Days 8-14  -> Week 2
+    Days 15-21 -> Week 3
+    Days 22-30 -> Week 4
+    """
+
+    if test_day is None:
+        return None
+
+    try:
+        test_day = int(test_day)
+    except Exception:
+        return None
+
+    if test_day <= 0:
+        return None
+
+    if test_day <= 7:
+        return 1
+    elif test_day <= 14:
+        return 2
+    elif test_day <= 21:
+        return 3
+    else:
+        return 4
+
+
+def generate_weekly_paper_review(week_number=None):
+    """
+    Generate a weekly review from the 30-day paper trading log.
+
+    If week_number is None, the latest available week is used.
+    """
+
+    df = read_paper_test_log(limit=100000)
+
+    if df.empty:
+        return {
+            "has_data": False,
+            "message": "No paper trading test records found.",
+            "review": {}
+        }
+
+    if "test_day" not in df.columns:
+        return {
+            "has_data": False,
+            "message": "No test_day column found in paper trading log.",
+            "review": {}
+        }
+
+    df = df.copy()
+    df["week_number"] = df["test_day"].apply(get_week_from_test_day)
+
+    if week_number is None:
+        valid_weeks = df["week_number"].dropna()
+
+        if valid_weeks.empty:
+            return {
+                "has_data": False,
+                "message": "No valid test days found for weekly review.",
+                "review": {}
+            }
+
+        week_number = int(valid_weeks.max())
+
+    week_df = df[df["week_number"] == int(week_number)].copy()
+
+    if week_df.empty:
+        return {
+            "has_data": False,
+            "message": f"No paper trading records found for week {week_number}.",
+            "review": {}
+        }
+
+    event_counts = week_df["event_type"].value_counts().to_dict() if "event_type" in week_df.columns else {}
+    signal_counts = week_df["signal"].value_counts().to_dict() if "signal" in week_df.columns else {}
+    risk_counts = week_df["risk_status"].value_counts().to_dict() if "risk_status" in week_df.columns else {}
+    broker_status_counts = week_df["broker_order_status"].value_counts().to_dict() if "broker_order_status" in week_df.columns else {}
+    readiness_counts = week_df["readiness_status"].value_counts().to_dict() if "readiness_status" in week_df.columns else {}
+
+    unique_days = sorted([
+        int(day) for day in week_df["test_day"].dropna().unique()
+    ])
+
+    total_events = len(week_df)
+    signals_reviewed = event_counts.get("SIGNAL_REVIEW", 0)
+    paper_orders_submitted = event_counts.get("PAPER_ORDER_SUBMITTED", 0)
+    risk_blocks = event_counts.get("RISK_BLOCK", 0)
+    errors = event_counts.get("ERROR", 0)
+
+    if errors > 0:
+        weekly_status = "needs_debugging"
+        recommendation = "Do not move closer to live trading. Resolve all weekly errors first."
+    elif risk_blocks > paper_orders_submitted and risk_blocks > 0:
+        weekly_status = "risk_controls_active"
+        recommendation = "Risk controls are blocking more actions than orders submitted. Review position sizing and signal quality."
+    elif paper_orders_submitted > 0 and errors == 0:
+        weekly_status = "paper_execution_working"
+        recommendation = "Paper execution appears functional for this week. Continue paper validation."
+    elif signals_reviewed > 0 and paper_orders_submitted == 0:
+        weekly_status = "signal_review_only"
+        recommendation = "Signals were reviewed but no paper orders were submitted. Continue testing signal-to-order workflow."
+    else:
+        weekly_status = "insufficient_activity"
+        recommendation = "Not enough weekly activity to assess readiness."
+
+    important_notes = []
+
+    note_columns = [
+        "review_note",
+        "pnl_note",
+        "error_note",
+        "position_status"
+    ]
+
+    for _, row in week_df.iterrows():
+        note_item = {
+            "timestamp": row.get("timestamp", ""),
+            "test_day": row.get("test_day", ""),
+            "event_type": row.get("event_type", ""),
+            "ticker": row.get("ticker", ""),
+            "strategy_name": row.get("strategy_name", "")
+        }
+
+        has_note = False
+
+        for col in note_columns:
+            value = row.get(col, "")
+            if isinstance(value, str) and value.strip():
+                note_item[col] = value
+                has_note = True
+
+        if has_note:
+            important_notes.append(note_item)
+
+    review = {
+        "week_number": int(week_number),
+        "date_generated": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "test_days_included": unique_days,
+        "total_events": total_events,
+        "signals_reviewed": signals_reviewed,
+        "paper_orders_submitted": paper_orders_submitted,
+        "risk_blocks": risk_blocks,
+        "errors": errors,
+        "event_counts": event_counts,
+        "signal_counts": signal_counts,
+        "risk_status_counts": risk_counts,
+        "broker_order_status_counts": broker_status_counts,
+        "readiness_status_counts": readiness_counts,
+        "weekly_status": weekly_status,
+        "recommendation": recommendation,
+        "important_notes": important_notes[-15:]
+    }
+
+    return {
+        "has_data": True,
+        "message": "Weekly paper trading review generated.",
+        "review": review
+    }
+
+
+def save_weekly_paper_review(week_number=None):
+    """
+    Save weekly review as a CSV-friendly summary.
+    """
+
+    ensure_paper_test_folder()
+
+    review_result = generate_weekly_paper_review(week_number=week_number)
+    review_file = PAPER_TEST_PATH / "weekly_paper_trading_review.csv"
+
+    review = review_result.get("review", {})
+
+    if not review:
+        summary_row = {
+            "generated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "week_number": week_number,
+            "has_data": False,
+            "message": review_result.get("message")
+        }
+    else:
+        summary_row = {
+            "generated_at": review.get("date_generated"),
+            "week_number": review.get("week_number"),
+            "has_data": True,
+            "test_days_included": str(review.get("test_days_included")),
+            "total_events": review.get("total_events"),
+            "signals_reviewed": review.get("signals_reviewed"),
+            "paper_orders_submitted": review.get("paper_orders_submitted"),
+            "risk_blocks": review.get("risk_blocks"),
+            "errors": review.get("errors"),
+            "weekly_status": review.get("weekly_status"),
+            "recommendation": review.get("recommendation"),
+            "event_counts": str(review.get("event_counts")),
+            "signal_counts": str(review.get("signal_counts")),
+            "risk_status_counts": str(review.get("risk_status_counts")),
+            "broker_order_status_counts": str(review.get("broker_order_status_counts")),
+            "readiness_status_counts": str(review.get("readiness_status_counts")),
+            "important_notes": str(review.get("important_notes"))
+        }
+
+    summary_df = pd.DataFrame([summary_row])
+
+    if review_file.exists():
+        existing_df = pd.read_csv(review_file)
+        updated_df = pd.concat([existing_df, summary_df], ignore_index=True)
+    else:
+        updated_df = summary_df
+
+    updated_df.to_csv(review_file, index=False)
+
+    return {
+        "review_file": str(review_file),
+        "review_result": review_result
+    }

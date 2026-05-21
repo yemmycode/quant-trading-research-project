@@ -1,4 +1,4 @@
-from paper_test_tracker import log_paper_test_event, read_paper_test_log, summarize_paper_test_log, generate_daily_paper_report, save_daily_paper_report
+from paper_test_tracker import log_paper_test_event, read_paper_test_log, summarize_paper_test_log, generate_daily_paper_report, save_daily_paper_report, generate_weekly_paper_review, save_weekly_paper_review
 from order_proposal import build_order_proposal_from_signal, proposal_to_order_request
 from live_signal import generate_live_signal
 from trade_audit import log_audit_event
@@ -1868,6 +1868,153 @@ if "latest_daily_paper_report" in st.session_state:
         file_name="daily_paper_trading_report.csv",
         mime="text/csv",
         key="download_daily_paper_report_csv"
+    )
+
+
+
+
+# ==============================
+# Weekly Paper Trading Review
+# ==============================
+
+st.markdown("---")
+st.header("Weekly Paper Trading Review")
+st.write(
+    "Review weekly progress from the 30-day IBKR paper trading validation period."
+)
+
+weekly_review_col1, weekly_review_col2 = st.columns(2)
+
+with weekly_review_col1:
+    weekly_review_number = st.number_input(
+        "Weekly Review Number",
+        min_value=1,
+        max_value=4,
+        value=1,
+        step=1,
+        key="weekly_review_number"
+    )
+
+with weekly_review_col2:
+    use_latest_week = st.checkbox(
+        "Use latest available week",
+        value=False,
+        key="use_latest_week_for_review"
+    )
+
+generate_weekly_review_button = st.button(
+    "Generate Weekly Paper Trading Review",
+    key="generate_weekly_paper_trading_review"
+)
+
+if generate_weekly_review_button:
+    selected_week = None if use_latest_week else weekly_review_number
+
+    weekly_review_result = generate_weekly_paper_review(week_number=selected_week)
+
+    if not weekly_review_result.get("has_data"):
+        st.warning(weekly_review_result.get("message"))
+    else:
+        review = weekly_review_result["review"]
+
+        st.success(weekly_review_result.get("message"))
+
+        wr_col1, wr_col2, wr_col3, wr_col4 = st.columns(4)
+
+        wr_col1.metric("Week", review.get("week_number"))
+        wr_col2.metric("Total Events", review.get("total_events"))
+        wr_col3.metric("Signals Reviewed", review.get("signals_reviewed"))
+        wr_col4.metric("Paper Orders", review.get("paper_orders_submitted"))
+
+        wr_col5, wr_col6, wr_col7 = st.columns(3)
+
+        wr_col5.metric("Risk Blocks", review.get("risk_blocks"))
+        wr_col6.metric("Errors", review.get("errors"))
+        wr_col7.metric("Weekly Status", review.get("weekly_status"))
+
+        st.subheader("Recommendation")
+
+        weekly_status = review.get("weekly_status")
+
+        if weekly_status in ["needs_debugging", "insufficient_activity"]:
+            st.warning(review.get("recommendation"))
+        elif weekly_status == "paper_execution_working":
+            st.success(review.get("recommendation"))
+        else:
+            st.info(review.get("recommendation"))
+
+        st.subheader("Test Days Included")
+        st.write(review.get("test_days_included"))
+
+        st.subheader("Event Counts")
+        st.json(review.get("event_counts", {}))
+
+        st.subheader("Signal Counts")
+        st.json(review.get("signal_counts", {}))
+
+        st.subheader("Risk Status Counts")
+        st.json(review.get("risk_status_counts", {}))
+
+        st.subheader("Broker Order Status Counts")
+        st.json(review.get("broker_order_status_counts", {}))
+
+        st.subheader("Readiness Status Counts")
+        st.json(review.get("readiness_status_counts", {}))
+
+        st.subheader("Important Notes")
+
+        important_notes = review.get("important_notes", [])
+
+        if important_notes:
+            st.dataframe(pd.DataFrame(important_notes), use_container_width=True)
+        else:
+            st.info("No important notes found for this week.")
+
+        st.session_state["latest_weekly_paper_review"] = review
+
+save_weekly_review_button = st.button(
+    "Save Weekly Paper Trading Review",
+    key="save_weekly_paper_trading_review"
+)
+
+if save_weekly_review_button:
+    selected_week = None if use_latest_week else weekly_review_number
+
+    save_result = save_weekly_paper_review(week_number=selected_week)
+
+    st.success("Weekly paper trading review saved.")
+    st.caption(save_result["review_file"])
+
+if "latest_weekly_paper_review" in st.session_state:
+    latest_weekly_review = st.session_state["latest_weekly_paper_review"]
+
+    weekly_review_csv_df = pd.DataFrame([{
+        "week_number": latest_weekly_review.get("week_number"),
+        "date_generated": latest_weekly_review.get("date_generated"),
+        "test_days_included": str(latest_weekly_review.get("test_days_included")),
+        "total_events": latest_weekly_review.get("total_events"),
+        "signals_reviewed": latest_weekly_review.get("signals_reviewed"),
+        "paper_orders_submitted": latest_weekly_review.get("paper_orders_submitted"),
+        "risk_blocks": latest_weekly_review.get("risk_blocks"),
+        "errors": latest_weekly_review.get("errors"),
+        "weekly_status": latest_weekly_review.get("weekly_status"),
+        "recommendation": latest_weekly_review.get("recommendation"),
+        "event_counts": str(latest_weekly_review.get("event_counts")),
+        "signal_counts": str(latest_weekly_review.get("signal_counts")),
+        "risk_status_counts": str(latest_weekly_review.get("risk_status_counts")),
+        "broker_order_status_counts": str(latest_weekly_review.get("broker_order_status_counts")),
+        "readiness_status_counts": str(latest_weekly_review.get("readiness_status_counts")),
+        "important_notes": str(latest_weekly_review.get("important_notes"))
+    }])
+
+    weekly_review_csv = weekly_review_csv_df.to_csv(index=False).encode("utf-8")
+
+    st.download_button(
+        label="Download Weekly Review CSV",
+        data=weekly_review_csv,
+        file_name="weekly_paper_trading_review.csv",
+        mime="text/csv",
+        key="download_weekly_paper_review_csv"
     )
 
 
