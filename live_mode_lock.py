@@ -15,6 +15,7 @@ from datetime import datetime
 
 from safety_manager import read_emergency_stop_state
 from live_readiness import evaluate_live_readiness
+from live_warning import is_live_warning_acknowledged
 
 
 def get_live_mode_config_snapshot():

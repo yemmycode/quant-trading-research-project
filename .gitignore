@@ -43,3 +43,5 @@ paper_trading_30_day_log.csv
 # Local live readiness runtime state
 readiness/
 live_trading_readiness.json
+# Local live warning acknowledgement state
+readiness/live_trading_warning_acknowledgement.json

@@ -306,3 +306,13 @@
 - [ ] Streamlit Live Mode Lock section added
 - [ ] Failed checks displayed
 - [ ] No live trading enabled
+
+## Lesson 88 Live Trading Warning Screen
+
+- [ ] live_warning.py created
+- [ ] test_live_warning.py created
+- [ ] Live warning acknowledgement tested
+- [ ] Live mode lock updated to require warning acknowledgement
+- [ ] Live Trading Warning Screen added to Streamlit
+- [ ] Warning acknowledgement audit logging added
+- [ ] No live trading enabled

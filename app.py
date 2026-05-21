@@ -1,3 +1,4 @@
+from live_warning import read_warning_state, acknowledge_live_warning, reset_live_warning_acknowledgement, WARNING_STATEMENTS
 from live_mode_lock import evaluate_live_mode_lock, explain_live_mode_lock
 from live_readiness import read_readiness_state, update_readiness_item, bulk_update_readiness, evaluate_live_readiness, readiness_to_dataframe
 from paper_test_tracker import log_paper_test_event, read_paper_test_log, summarize_paper_test_log, generate_daily_paper_report, save_daily_paper_report, generate_weekly_paper_review, save_weekly_paper_review
@@ -2104,6 +2105,98 @@ else:
     )
 
 
+
+
+
+
+# ==============================
+# Live Trading Warning Screen
+# ==============================
+
+st.markdown("---")
+st.header("Live Trading Warning Screen")
+st.write(
+    "This warning must be acknowledged before very small live manual testing can ever be considered. "
+    "Acknowledgement does not enable live trading."
+)
+
+warning_state = read_warning_state()
+
+if warning_state.get("acknowledged", False):
+    st.success(
+        f"Live trading warning acknowledged by {warning_state.get('acknowledged_by', '')} "
+        f"at {warning_state.get('acknowledged_at', '')}."
+    )
+else:
+    st.warning("Live trading warning has not been acknowledged.")
+
+st.subheader("Live Trading Risk Statements")
+
+warning_checks = []
+
+for idx, statement in enumerate(WARNING_STATEMENTS):
+    checked = st.checkbox(
+        statement,
+        key=f"live_warning_statement_{idx}"
+    )
+    warning_checks.append(checked)
+
+warning_notes = st.text_area(
+    "Warning Acknowledgement Notes",
+    value=warning_state.get("notes", ""),
+    key="live_warning_notes"
+)
+
+acknowledge_warning_button = st.button(
+    "Acknowledge Live Trading Warning",
+    key="acknowledge_live_trading_warning"
+)
+
+if acknowledge_warning_button:
+    if not all(warning_checks):
+        st.error("You must tick every warning statement before acknowledgement can be saved.")
+    else:
+        acknowledge_live_warning(
+            acknowledged_by="streamlit_dashboard",
+            notes=warning_notes
+        )
+
+        log_audit_event(
+            event_type="LIVE_WARNING_ACKNOWLEDGED",
+            broker_name="ibkr",
+            execution_mode=EXECUTION_MODE,
+            broker_status="not_submitted",
+            message="Live trading warning acknowledged in dashboard.",
+            details={
+                "statements": WARNING_STATEMENTS,
+                "notes": warning_notes
+            }
+        )
+
+        st.success("Live trading warning acknowledgement saved.")
+        st.rerun()
+
+reset_warning_button = st.button(
+    "Reset Live Warning Acknowledgement",
+    key="reset_live_warning_acknowledgement"
+)
+
+if reset_warning_button:
+    reset_live_warning_acknowledgement()
+
+    log_audit_event(
+        event_type="LIVE_WARNING_ACKNOWLEDGEMENT_RESET",
+        broker_name="ibkr",
+        execution_mode=EXECUTION_MODE,
+        broker_status="not_submitted",
+        message="Live trading warning acknowledgement reset in dashboard."
+    )
+
+    st.warning("Live warning acknowledgement reset.")
+    st.rerun()
+
+with st.expander("Live Warning State"):
+    st.json(warning_state)
 
 
 # ==============================
