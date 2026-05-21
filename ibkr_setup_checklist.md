@@ -225,3 +225,13 @@
 - [ ] Streamlit proposal section added
 - [ ] Proposal audit logging added
 - [ ] No broker order submitted automatically
+
+## Lesson 81 Signal Review Page
+
+- [ ] Signal Review Page added to Streamlit
+- [ ] Latest signal displayed
+- [ ] Emergency stop status displayed
+- [ ] Latest order proposal displayed
+- [ ] Pre-trade recommendation displayed
+- [ ] Signal review decision audit logging added
+- [ ] No broker order submitted automatically

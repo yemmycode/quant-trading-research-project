@@ -1973,6 +1973,162 @@ if "latest_order_proposal" in st.session_state:
             st.caption(str(e))
 
 
+
+
+# ==============================
+# Signal Review Page
+# ==============================
+
+st.markdown("---")
+st.header("Signal Review Page")
+st.write(
+    "Review the latest generated signal, proposed order, emergency stop status, "
+    "and risk readiness before any broker action."
+)
+
+review_signal = st.session_state.get("latest_live_signal")
+review_proposal = st.session_state.get("latest_order_proposal")
+review_emergency_state = read_emergency_stop_state()
+
+if not review_signal:
+    st.info("No signal has been generated yet. Please generate a live broker signal first.")
+else:
+    st.subheader("Latest Signal Review")
+
+    signal_action = review_signal.get("action", "UNKNOWN")
+    signal_ticker = review_signal.get("ticker", "N/A")
+    signal_strategy = review_signal.get("strategy_label", "N/A")
+    signal_latest_close = review_signal.get("latest_close", None)
+    signal_latest_date = review_signal.get("latest_date", "N/A")
+    signal_reason = review_signal.get("reason", "")
+
+    sig_rev_col1, sig_rev_col2, sig_rev_col3, sig_rev_col4 = st.columns(4)
+
+    sig_rev_col1.metric("Ticker", signal_ticker)
+    sig_rev_col2.metric("Signal Action", signal_action)
+    sig_rev_col3.metric("Strategy", signal_strategy)
+
+    if signal_latest_close is not None:
+        sig_rev_col4.metric("Latest Close", f"${float(signal_latest_close):,.2f}")
+    else:
+        sig_rev_col4.metric("Latest Close", "N/A")
+
+    st.write("Latest Signal Date:", signal_latest_date)
+    st.write("Signal Reason:", signal_reason)
+
+    if signal_action == "BUY":
+        st.success("Recommended signal action: BUY")
+    elif signal_action == "SELL":
+        st.warning("Recommended signal action: SELL")
+    elif signal_action == "HOLD":
+        st.info("Recommended signal action: HOLD existing position. No new entry order is required.")
+    elif signal_action == "STAY IN CASH":
+        st.info("Recommended signal action: stay out of the market. No order is required.")
+    else:
+        st.warning("Unknown signal action.")
+
+    with st.expander("Full Signal Data"):
+        st.json(review_signal)
+
+st.subheader("Emergency Stop Review")
+
+if review_emergency_state.get("active", False):
+    st.error(
+        f"Emergency stop is ACTIVE. Broker order submission must remain blocked. "
+        f"Reason: {review_emergency_state.get('reason', '')}"
+    )
+else:
+    st.success("Emergency stop is inactive.")
+
+with st.expander("Emergency Stop State"):
+    st.json(review_emergency_state)
+
+st.subheader("Order Proposal Review")
+
+if not review_proposal:
+    st.info("No order proposal has been created yet. Create an order proposal from the latest signal first.")
+else:
+    proposal_actionable = review_proposal.get("actionable", False)
+    proposal_status = review_proposal.get("proposal_status", "unknown")
+
+    prop_col1, prop_col2, prop_col3, prop_col4 = st.columns(4)
+
+    prop_col1.metric("Proposal Status", proposal_status)
+    prop_col2.metric("Ticker", review_proposal.get("ticker", "N/A"))
+    prop_col3.metric("Side", review_proposal.get("side", "N/A"))
+    prop_col4.metric("Quantity", review_proposal.get("quantity", "N/A"))
+
+    prop_col5, prop_col6, prop_col7, prop_col8 = st.columns(4)
+
+    prop_col5.metric("Order Type", review_proposal.get("order_type", "N/A"))
+
+    limit_price_value = review_proposal.get("limit_price")
+    if limit_price_value is not None:
+        prop_col6.metric("Limit Price", f"${float(limit_price_value):,.2f}")
+    else:
+        prop_col6.metric("Limit Price", "N/A")
+
+    estimated_value = review_proposal.get("estimated_order_value")
+    if estimated_value is not None:
+        prop_col7.metric("Estimated Value", f"${float(estimated_value):,.2f}")
+    else:
+        prop_col7.metric("Estimated Value", "N/A")
+
+    prop_col8.metric("Actionable", str(proposal_actionable))
+
+    if proposal_actionable:
+        st.success("This proposal is actionable and can move to risk review/manual broker ticket.")
+    else:
+        st.info(f"This proposal is not actionable. Reason: {review_proposal.get('reason', '')}")
+
+    with st.expander("Full Order Proposal Data"):
+        st.json(review_proposal)
+
+st.subheader("Pre-Trade Recommendation")
+
+if not review_signal:
+    st.info("Step 1: Generate a live broker signal.")
+elif not review_proposal:
+    st.info("Step 2: Create an order proposal from the latest signal.")
+elif review_emergency_state.get("active", False):
+    st.error("Do not proceed. Emergency stop is active.")
+elif not review_proposal.get("actionable", False):
+    st.info("No broker order should be submitted because the current proposal is not actionable.")
+else:
+    st.success(
+        "Signal and proposal are ready for manual broker review. "
+        "Next: go to Broker Manual Approval Ticket, run risk check, tick manual confirmation, then submit paper order only if approved."
+    )
+
+    log_review_button = st.button(
+        "Log Signal Review Decision",
+        key="log_signal_review_decision"
+    )
+
+    if log_review_button:
+        log_audit_event(
+            event_type="SIGNAL_REVIEW_COMPLETED",
+            ticker=review_proposal.get("ticker"),
+            side=review_proposal.get("side"),
+            quantity=review_proposal.get("quantity"),
+            order_type=review_proposal.get("order_type"),
+            limit_price=review_proposal.get("limit_price"),
+            strategy_name=review_proposal.get("strategy_label"),
+            signal=review_signal.get("action"),
+            broker_name="ibkr",
+            execution_mode=EXECUTION_MODE,
+            broker_status="not_submitted",
+            message="Signal review completed in dashboard.",
+            details={
+                "signal": review_signal,
+                "proposal": review_proposal,
+                "emergency_stop": review_emergency_state
+            }
+        )
+
+        st.success("Signal review decision logged.")
+
+
 # ==============================
 # Broker Manual Approval Ticket
 # ==============================
