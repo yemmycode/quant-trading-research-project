@@ -261,3 +261,14 @@
 - [ ] Paper test CSV download added
 - [ ] Dashboard paper order submission connected to paper test tracker
 - [ ] No live trading enabled
+
+## Lesson 84 Daily Paper Trading Report
+
+- [ ] Daily report functions added to paper_test_tracker.py
+- [ ] test_daily_paper_report.py created
+- [ ] Daily paper report tested
+- [ ] Daily Paper Trading Report dashboard section added
+- [ ] Daily report metrics displayed
+- [ ] Daily report CSV download added
+- [ ] No broker connection required
+- [ ] No live trading enabled

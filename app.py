@@ -1,4 +1,4 @@
-from paper_test_tracker import log_paper_test_event, read_paper_test_log, summarize_paper_test_log
+from paper_test_tracker import log_paper_test_event, read_paper_test_log, summarize_paper_test_log, generate_daily_paper_report, save_daily_paper_report
 from order_proposal import build_order_proposal_from_signal, proposal_to_order_request
 from live_signal import generate_live_signal
 from trade_audit import log_audit_event
@@ -1738,6 +1738,136 @@ else:
         file_name="paper_trading_30_day_log_latest.csv",
         mime="text/csv",
         key="download_paper_test_log_csv"
+    )
+
+
+
+
+# ==============================
+# Daily Paper Trading Report
+# ==============================
+
+st.markdown("---")
+st.header("Daily Paper Trading Report")
+st.write(
+    "Generate a daily summary from the 30-day IBKR paper trading test log."
+)
+
+daily_report_col1, daily_report_col2 = st.columns(2)
+
+with daily_report_col1:
+    daily_report_day = st.number_input(
+        "Daily Report Test Day",
+        min_value=1,
+        max_value=30,
+        value=1,
+        step=1,
+        key="daily_report_day"
+    )
+
+with daily_report_col2:
+    use_latest_day = st.checkbox(
+        "Use latest available test day",
+        value=False,
+        key="use_latest_day_for_daily_report"
+    )
+
+generate_daily_report_button = st.button(
+    "Generate Daily Paper Trading Report",
+    key="generate_daily_paper_trading_report"
+)
+
+if generate_daily_report_button:
+    selected_day = None if use_latest_day else daily_report_day
+
+    daily_report_result = generate_daily_paper_report(test_day=selected_day)
+
+    if not daily_report_result.get("has_data"):
+        st.warning(daily_report_result.get("message"))
+    else:
+        report = daily_report_result["report"]
+
+        st.success(daily_report_result.get("message"))
+
+        report_col1, report_col2, report_col3, report_col4 = st.columns(4)
+
+        report_col1.metric("Test Day", report.get("test_day"))
+        report_col2.metric("Total Events", report.get("total_events"))
+        report_col3.metric("Signals Reviewed", report.get("signals_reviewed"))
+        report_col4.metric("Paper Orders", report.get("paper_orders_submitted"))
+
+        report_col5, report_col6 = st.columns(2)
+
+        report_col5.metric("Risk Blocks", report.get("risk_blocks"))
+        report_col6.metric("Errors", report.get("errors"))
+
+        st.subheader("Event Counts")
+        st.json(report.get("event_counts", {}))
+
+        st.subheader("Signal Counts")
+        st.json(report.get("signal_counts", {}))
+
+        st.subheader("Risk Status Counts")
+        st.json(report.get("risk_status_counts", {}))
+
+        st.subheader("Broker Order Status Counts")
+        st.json(report.get("broker_order_status_counts", {}))
+
+        st.subheader("Readiness Status Counts")
+        st.json(report.get("readiness_status_counts", {}))
+
+        st.subheader("Latest Notes")
+
+        latest_notes = report.get("latest_notes", [])
+
+        if latest_notes:
+            st.dataframe(pd.DataFrame(latest_notes), use_container_width=True)
+        else:
+            st.info("No notes found for this report.")
+
+        st.session_state["latest_daily_paper_report"] = report
+
+save_daily_report_button = st.button(
+    "Save Daily Paper Trading Report",
+    key="save_daily_paper_trading_report"
+)
+
+if save_daily_report_button:
+    selected_day = None if use_latest_day else daily_report_day
+
+    save_result = save_daily_paper_report(test_day=selected_day)
+
+    st.success("Daily paper trading report saved.")
+    st.caption(save_result["report_file"])
+
+if "latest_daily_paper_report" in st.session_state:
+    latest_report = st.session_state["latest_daily_paper_report"]
+
+    report_csv_df = pd.DataFrame([{
+        "test_day": latest_report.get("test_day"),
+        "date_generated": latest_report.get("date_generated"),
+        "total_events": latest_report.get("total_events"),
+        "signals_reviewed": latest_report.get("signals_reviewed"),
+        "paper_orders_submitted": latest_report.get("paper_orders_submitted"),
+        "risk_blocks": latest_report.get("risk_blocks"),
+        "errors": latest_report.get("errors"),
+        "event_counts": str(latest_report.get("event_counts")),
+        "signal_counts": str(latest_report.get("signal_counts")),
+        "risk_status_counts": str(latest_report.get("risk_status_counts")),
+        "manual_decision_counts": str(latest_report.get("manual_decision_counts")),
+        "broker_order_status_counts": str(latest_report.get("broker_order_status_counts")),
+        "readiness_status_counts": str(latest_report.get("readiness_status_counts")),
+        "latest_notes": str(latest_report.get("latest_notes"))
+    }])
+
+    report_csv = report_csv_df.to_csv(index=False).encode("utf-8")
+
+    st.download_button(
+        label="Download Daily Report CSV",
+        data=report_csv,
+        file_name="daily_paper_trading_report.csv",
+        mime="text/csv",
+        key="download_daily_paper_report_csv"
     )
 
 
