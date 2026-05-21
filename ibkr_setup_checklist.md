@@ -284,3 +284,15 @@
 - [ ] Weekly review CSV download added
 - [ ] No broker connection required
 - [ ] No live trading enabled
+
+## Lesson 86 Live Trading Readiness Checklist
+
+- [ ] live_readiness.py created
+- [ ] test_live_readiness.py created
+- [ ] Live readiness checklist tested
+- [ ] readiness folder excluded from GitHub
+- [ ] Live Trading Readiness Checklist added to Streamlit
+- [ ] Readiness score displayed
+- [ ] Missing readiness items displayed
+- [ ] Checklist editing and saving added
+- [ ] No live trading enabled

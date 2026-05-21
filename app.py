@@ -1,3 +1,4 @@
+from live_readiness import read_readiness_state, update_readiness_item, bulk_update_readiness, evaluate_live_readiness, readiness_to_dataframe
 from paper_test_tracker import log_paper_test_event, read_paper_test_log, summarize_paper_test_log, generate_daily_paper_report, save_daily_paper_report, generate_weekly_paper_review, save_weekly_paper_review
 from order_proposal import build_order_proposal_from_signal, proposal_to_order_request
 from live_signal import generate_live_signal
@@ -2015,6 +2016,90 @@ if "latest_weekly_paper_review" in st.session_state:
         file_name="weekly_paper_trading_review.csv",
         mime="text/csv",
         key="download_weekly_paper_review_csv"
+    )
+
+
+
+
+# ==============================
+# Live Trading Readiness Checklist
+# ==============================
+
+st.markdown("---")
+st.header("Live Trading Readiness Checklist")
+st.write(
+    "This checklist must be completed before very small live manual testing can even be considered. "
+    "It does not enable live trading."
+)
+
+readiness_eval = evaluate_live_readiness()
+
+readiness_col1, readiness_col2, readiness_col3, readiness_col4 = st.columns(4)
+
+readiness_col1.metric("Readiness Status", readiness_eval.get("status"))
+readiness_col2.metric("Readiness Score", f"{readiness_eval.get('readiness_score', 0) * 100:.1f}%")
+readiness_col3.metric("Completed", readiness_eval.get("completed_count"))
+readiness_col4.metric("Missing", readiness_eval.get("missing_count"))
+
+if readiness_eval.get("ready_for_small_live_test"):
+    st.success(readiness_eval.get("recommendation"))
+else:
+    st.warning(readiness_eval.get("recommendation"))
+
+with st.expander("Missing Readiness Items"):
+    st.write(readiness_eval.get("missing_items", []))
+
+with st.expander("Completed Readiness Items"):
+    st.write(readiness_eval.get("completed_items", []))
+
+st.subheader("Checklist Items")
+
+readiness_df = readiness_to_dataframe()
+
+edited_readiness_df = st.data_editor(
+    readiness_df,
+    use_container_width=True,
+    hide_index=True,
+    key="live_readiness_editor"
+)
+
+readiness_notes = st.text_area(
+    "Readiness Notes",
+    value=readiness_eval.get("notes", ""),
+    key="live_readiness_notes"
+)
+
+save_readiness_button = st.button(
+    "Save Live Readiness Checklist",
+    key="save_live_readiness_checklist"
+)
+
+if save_readiness_button:
+    updates = {}
+
+    for _, row in edited_readiness_df.iterrows():
+        updates[row["checklist_item"]] = bool(row["completed"])
+
+    bulk_update_readiness(
+        checklist_updates=updates,
+        updated_by="streamlit_dashboard",
+        notes=readiness_notes
+    )
+
+    st.success("Live readiness checklist saved.")
+    st.rerun()
+
+st.subheader("Live Readiness Final Warning")
+
+if readiness_eval.get("ready_for_small_live_test"):
+    st.error(
+        "Even if the checklist is complete, this does NOT enable live trading. "
+        "The next phase still requires a live mode lock, warning screen, dry-run mode, "
+        "and very small manual testing plan."
+    )
+else:
+    st.info(
+        "Live trading remains blocked. Continue paper testing until every required item is complete."
     )
 
 

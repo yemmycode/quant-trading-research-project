@@ -40,3 +40,6 @@ emergency_stop.json
 # Local paper trading validation logs
 paper_test/
 paper_trading_30_day_log.csv
+# Local live readiness runtime state
+readiness/
+live_trading_readiness.json
