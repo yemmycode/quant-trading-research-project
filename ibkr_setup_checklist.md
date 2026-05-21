@@ -296,3 +296,13 @@
 - [ ] Missing readiness items displayed
 - [ ] Checklist editing and saving added
 - [ ] No live trading enabled
+
+## Lesson 87 Live Mode Lock
+
+- [ ] live_mode_lock.py created
+- [ ] test_live_mode_lock.py created
+- [ ] Live mode lock tested
+- [ ] Live mode remains locked by default
+- [ ] Streamlit Live Mode Lock section added
+- [ ] Failed checks displayed
+- [ ] No live trading enabled

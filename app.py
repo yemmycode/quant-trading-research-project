@@ -1,3 +1,4 @@
+from live_mode_lock import evaluate_live_mode_lock, explain_live_mode_lock
 from live_readiness import read_readiness_state, update_readiness_item, bulk_update_readiness, evaluate_live_readiness, readiness_to_dataframe
 from paper_test_tracker import log_paper_test_event, read_paper_test_log, summarize_paper_test_log, generate_daily_paper_report, save_daily_paper_report, generate_weekly_paper_review, save_weekly_paper_review
 from order_proposal import build_order_proposal_from_signal, proposal_to_order_request
@@ -2101,6 +2102,62 @@ else:
     st.info(
         "Live trading remains blocked. Continue paper testing until every required item is complete."
     )
+
+
+
+
+# ==============================
+# Live Mode Lock
+# ==============================
+
+st.markdown("---")
+st.header("Live Mode Lock")
+st.write(
+    "This lock prevents live trading from being enabled accidentally. "
+    "All required conditions must pass before very small live manual testing can even be considered."
+)
+
+live_lock_eval = evaluate_live_mode_lock()
+
+lock_col1, lock_col2, lock_col3 = st.columns(3)
+
+lock_col1.metric("Live Lock Status", live_lock_eval.get("status"))
+lock_col2.metric("Live Mode Allowed", str(live_lock_eval.get("live_mode_allowed")))
+lock_col3.metric("Failed Checks", len(live_lock_eval.get("failed_checks", [])))
+
+if live_lock_eval.get("live_mode_allowed"):
+    st.error(
+        "Live mode lock is UNLOCKED. This does not allow automated trading. "
+        "Proceed only with final warning, dry run, and very small manual testing plan."
+    )
+else:
+    st.success("Live mode is locked. This is the expected safe state for now.")
+
+st.subheader("Live Mode Lock Message")
+st.write(live_lock_eval.get("message"))
+
+st.subheader("Failed Checks")
+
+failed_checks = live_lock_eval.get("failed_checks", [])
+
+if failed_checks:
+    st.warning("The following checks are currently blocking live mode:")
+    st.write(failed_checks)
+else:
+    st.success("No failed checks.")
+
+with st.expander("Passed Checks"):
+    st.write(live_lock_eval.get("passed_checks", []))
+
+with st.expander("Full Live Mode Lock Evaluation"):
+    st.json(live_lock_eval)
+
+st.subheader("Live Mode Lock Guidance")
+
+st.info(
+    "For now, this should remain locked. The next steps are warning screen, dry-run mode, "
+    "and only later very small manual live testing after all reviews are complete."
+)
 
 
 # ==============================
