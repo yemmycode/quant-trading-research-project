@@ -4,3 +4,4 @@ matplotlib
 yfinance
 openpyxl
 ib_insync
+python-dotenv
