@@ -37,3 +37,6 @@ trade_audit_log.csv
 # Local safety runtime state
 safety/
 emergency_stop.json
+# Local paper trading validation logs
+paper_test/
+paper_trading_30_day_log.csv

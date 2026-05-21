@@ -249,3 +249,15 @@
 - [ ] IBKR paper order submission still requires explicit button click
 - [ ] No automatic broker submission added
 - [ ] No live trading enabled
+
+## Lesson 83 30-Day IBKR Paper Trading Test Framework
+
+- [ ] paper_test_tracker.py created
+- [ ] test_paper_test_tracker.py created
+- [ ] Paper test tracker tested
+- [ ] paper_test folder excluded from GitHub
+- [ ] 30-Day IBKR Paper Trading Test dashboard section added
+- [ ] Paper test event logging added
+- [ ] Paper test CSV download added
+- [ ] Dashboard paper order submission connected to paper test tracker
+- [ ] No live trading enabled

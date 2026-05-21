@@ -1,3 +1,4 @@
+from paper_test_tracker import log_paper_test_event, read_paper_test_log, summarize_paper_test_log
 from order_proposal import build_order_proposal_from_signal, proposal_to_order_request
 from live_signal import generate_live_signal
 from trade_audit import log_audit_event
@@ -1530,6 +1531,214 @@ if run_optimization_button:
 
 
 
+
+
+
+
+# ==============================
+# 30-Day IBKR Paper Trading Test
+# ==============================
+
+st.markdown("---")
+st.header("30-Day IBKR Paper Trading Test")
+st.write(
+    "Track the IBKR paper trading validation period before considering any live manual trading."
+)
+
+paper_summary = summarize_paper_test_log()
+
+summary_col1, summary_col2, summary_col3, summary_col4 = st.columns(4)
+
+summary_col1.metric("Total Events", paper_summary.get("total_events", 0))
+summary_col2.metric("Unique Test Days", paper_summary.get("unique_test_days", 0))
+summary_col3.metric("Signals Reviewed", paper_summary.get("signals_reviewed", 0))
+summary_col4.metric("Paper Orders", paper_summary.get("orders_submitted", 0))
+
+summary_col5, summary_col6 = st.columns(2)
+
+summary_col5.metric("Risk Blocks", paper_summary.get("risk_blocks", 0))
+summary_col6.metric("Errors", paper_summary.get("errors", 0))
+
+with st.expander("Readiness Status Counts"):
+    st.json(paper_summary.get("readiness_status_counts", {}))
+
+st.subheader("Log Paper Test Event")
+
+pt_col1, pt_col2, pt_col3 = st.columns(3)
+
+with pt_col1:
+    paper_test_day = st.number_input(
+        "Test Day",
+        min_value=1,
+        max_value=30,
+        value=1,
+        step=1,
+        key="paper_test_day"
+    )
+
+with pt_col2:
+    paper_test_event_type = st.selectbox(
+        "Event Type",
+        [
+            "DAILY_REVIEW",
+            "SIGNAL_REVIEW",
+            "PAPER_ORDER_SUBMITTED",
+            "RISK_BLOCK",
+            "ERROR",
+            "POSITION_REVIEW",
+            "READINESS_REVIEW",
+            "NOTE"
+        ],
+        key="paper_test_event_type"
+    )
+
+with pt_col3:
+    paper_test_ticker = st.selectbox(
+        "Paper Test Ticker",
+        ["SPY", "QQQ", "AAPL", "MSFT", ""],
+        key="paper_test_ticker"
+    )
+
+pt_col4, pt_col5, pt_col6 = st.columns(3)
+
+with pt_col4:
+    paper_test_strategy = st.text_input(
+        "Strategy Name",
+        value="",
+        key="paper_test_strategy"
+    )
+
+with pt_col5:
+    paper_test_signal = st.selectbox(
+        "Signal",
+        ["", "BUY", "SELL", "HOLD", "STAY IN CASH"],
+        key="paper_test_signal"
+    )
+
+with pt_col6:
+    paper_test_order_status = st.selectbox(
+        "Broker Order Status",
+        ["", "not_submitted", "submitted", "filled", "cancelled", "rejected", "blocked"],
+        key="paper_test_order_status"
+    )
+
+pt_col7, pt_col8, pt_col9 = st.columns(3)
+
+with pt_col7:
+    paper_test_proposal_status = st.selectbox(
+        "Proposal Status",
+        ["", "no_order", "proposed", "blocked_quantity_zero", "blocked_no_position_to_sell"],
+        key="paper_test_proposal_status"
+    )
+
+with pt_col8:
+    paper_test_risk_status = st.selectbox(
+        "Risk Status",
+        ["", "approved", "blocked", "not_required"],
+        key="paper_test_risk_status"
+    )
+
+with pt_col9:
+    paper_test_manual_decision = st.selectbox(
+        "Manual Decision",
+        ["", "reviewed", "approved", "rejected", "skipped"],
+        key="paper_test_manual_decision"
+    )
+
+paper_order_id = st.text_input(
+    "Order ID",
+    value="",
+    key="paper_order_id"
+)
+
+paper_position_status = st.text_input(
+    "Position Status",
+    value="",
+    key="paper_position_status"
+)
+
+paper_pnl_note = st.text_area(
+    "P&L Note",
+    value="",
+    key="paper_pnl_note"
+)
+
+paper_error_note = st.text_area(
+    "Error Note",
+    value="",
+    key="paper_error_note"
+)
+
+paper_review_note = st.text_area(
+    "Review Note",
+    value="",
+    key="paper_review_note"
+)
+
+paper_readiness_status = st.selectbox(
+    "Readiness Status",
+    [
+        "not_reviewed",
+        "not_ready",
+        "needs_more_testing",
+        "paper_ready",
+        "live_not_recommended",
+        "small_live_test_candidate"
+    ],
+    key="paper_readiness_status"
+)
+
+log_paper_test_button = st.button(
+    "Log 30-Day Paper Test Event",
+    key="log_30_day_paper_test_event"
+)
+
+if log_paper_test_button:
+    result = log_paper_test_event(
+        test_day=paper_test_day,
+        event_type=paper_test_event_type,
+        ticker=paper_test_ticker or None,
+        strategy_name=paper_test_strategy or None,
+        signal=paper_test_signal or None,
+        proposal_status=paper_test_proposal_status or None,
+        risk_status=paper_test_risk_status or None,
+        manual_decision=paper_test_manual_decision or None,
+        broker_order_status=paper_test_order_status or None,
+        order_id=paper_order_id or None,
+        position_status=paper_position_status or None,
+        pnl_note=paper_pnl_note or None,
+        error_note=paper_error_note or None,
+        review_note=paper_review_note or None,
+        readiness_status=paper_readiness_status,
+        details={
+            "source": "streamlit_dashboard",
+            "execution_mode": EXECUTION_MODE,
+            "default_broker": DEFAULT_BROKER
+        }
+    )
+
+    st.success("Paper test event logged.")
+    st.caption(result["log_file"])
+    st.rerun()
+
+st.subheader("Latest Paper Test Log")
+
+paper_log_df = read_paper_test_log(limit=50)
+
+if paper_log_df.empty:
+    st.info("No paper test log records found yet.")
+else:
+    st.dataframe(paper_log_df, use_container_width=True)
+
+    paper_log_csv = paper_log_df.to_csv(index=False).encode("utf-8")
+
+    st.download_button(
+        label="Download Latest Paper Test Log CSV",
+        data=paper_log_csv,
+        file_name="paper_trading_30_day_log_latest.csv",
+        mime="text/csv",
+        key="download_paper_test_log_csv"
+    )
 
 
 # ==============================
