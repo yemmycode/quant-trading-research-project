@@ -2145,6 +2145,28 @@ st.warning(
     "Live trading remains disabled unless explicitly enabled later."
 )
 
+
+st.info(
+    "Recommended workflow: Generate Signal → Create Order Proposal → Review Signal → "
+    "Use latest proposal here → Run Risk Check → Tick confirmation → Submit IBKR Paper Order."
+)
+
+
+
+# Load latest actionable order proposal if available
+latest_order_proposal_for_ticket = st.session_state.get("latest_order_proposal", {})
+
+use_latest_proposal = False
+
+if latest_order_proposal_for_ticket and latest_order_proposal_for_ticket.get("actionable", False):
+    use_latest_proposal = st.checkbox(
+        "Use latest actionable signal order proposal",
+        value=True,
+        key="use_latest_signal_order_proposal"
+    )
+else:
+    st.info("No actionable signal order proposal is currently available for the broker ticket.")
+
 ticket_emergency_state = read_emergency_stop_state()
 
 if ticket_emergency_state.get("active", False):
@@ -2158,50 +2180,84 @@ else:
 ticket_col1, ticket_col2, ticket_col3 = st.columns(3)
 
 with ticket_col1:
+    proposal_ticker_default = latest_order_proposal_for_ticket.get("ticker", "SPY") if use_latest_proposal else "SPY"
+    ticker_options = ["SPY", "QQQ", "AAPL", "MSFT"]
+
+    if proposal_ticker_default not in ticker_options:
+        proposal_ticker_default = "SPY"
+
     broker_ticket_ticker = st.selectbox(
         "Broker Ticket Ticker",
-        ["SPY", "QQQ", "AAPL", "MSFT"],
+        ticker_options,
+        index=ticker_options.index(proposal_ticker_default),
         key="broker_ticket_ticker"
     )
 
 with ticket_col2:
+    proposal_side_default = latest_order_proposal_for_ticket.get("side", "BUY") if use_latest_proposal else "BUY"
+    side_options = ["BUY", "SELL"]
+
+    if proposal_side_default not in side_options:
+        proposal_side_default = "BUY"
+
     broker_ticket_side = st.selectbox(
         "Side",
-        ["BUY", "SELL"],
+        side_options,
+        index=side_options.index(proposal_side_default),
         key="broker_ticket_side"
     )
 
 with ticket_col3:
+    proposal_asset_default = latest_order_proposal_for_ticket.get("asset_type", "etf") if use_latest_proposal else "etf"
+    asset_options = ["etf", "stock"]
+
+    if proposal_asset_default not in asset_options:
+        proposal_asset_default = "etf"
+
     broker_ticket_asset_type = st.selectbox(
         "Asset Type",
-        ["etf", "stock"],
+        asset_options,
+        index=asset_options.index(proposal_asset_default),
         key="broker_ticket_asset_type"
     )
 
 ticket_col4, ticket_col5, ticket_col6 = st.columns(3)
 
 with ticket_col4:
+    proposal_quantity_default = float(latest_order_proposal_for_ticket.get("quantity", 1.0)) if use_latest_proposal else 1.0
+
     broker_ticket_quantity = st.number_input(
         "Quantity",
         min_value=0.0,
-        value=1.0,
+        value=proposal_quantity_default,
         step=1.0,
         key="broker_ticket_quantity"
     )
 
 with ticket_col5:
+    proposal_order_type_default = latest_order_proposal_for_ticket.get("order_type", "LMT") if use_latest_proposal else "LMT"
+    order_type_options = ["LMT", "MKT"]
+
+    if proposal_order_type_default not in order_type_options:
+        proposal_order_type_default = "LMT"
+
     broker_ticket_order_type = st.selectbox(
         "Order Type",
-        ["LMT", "MKT"],
-        index=0,
+        order_type_options,
+        index=order_type_options.index(proposal_order_type_default),
         key="broker_ticket_order_type"
     )
 
 with ticket_col6:
+    proposal_limit_default = latest_order_proposal_for_ticket.get("limit_price", 1.00) if use_latest_proposal else 1.00
+
+    if proposal_limit_default is None:
+        proposal_limit_default = 1.00
+
     broker_ticket_limit_price = st.number_input(
         "Limit Price",
         min_value=0.0,
-        value=1.00,
+        value=float(proposal_limit_default),
         step=0.01,
         format="%.2f",
         key="broker_ticket_limit_price"
@@ -2277,7 +2333,11 @@ if run_ticket_risk_check:
         execution_mode=EXECUTION_MODE,
         broker_status="not_submitted",
         message="Dashboard broker ticket risk check completed.",
-        details=risk_result.details
+        details={
+            **risk_result.details,
+            "used_latest_signal_order_proposal": use_latest_proposal,
+            "latest_order_proposal": latest_order_proposal_for_ticket if use_latest_proposal else {}
+        }
     )
 
 if "broker_ticket_risk_result" in st.session_state:
@@ -2404,8 +2464,12 @@ if submit_broker_order:
                 execution_mode=EXECUTION_MODE,
                 order_id=broker_result.get("order_id"),
                 broker_status=broker_result.get("order_status"),
-                message="Dashboard IBKR paper order submitted.",
-                details=broker_result
+                message="Dashboard IBKR paper order submitted from manual ticket.",
+                details={
+                    "broker_result": broker_result,
+                    "used_latest_signal_order_proposal": use_latest_proposal,
+                    "latest_order_proposal": latest_order_proposal_for_ticket if use_latest_proposal else {}
+                }
             )
 
             try:

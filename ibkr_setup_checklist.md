@@ -235,3 +235,17 @@
 - [ ] Pre-trade recommendation displayed
 - [ ] Signal review decision audit logging added
 - [ ] No broker order submitted automatically
+
+## Lesson 82 Execute Signal in IBKR Paper Mode
+
+- [ ] Broker ticket can load latest actionable order proposal
+- [ ] Proposal ticker loads into broker ticket
+- [ ] Proposal side loads into broker ticket
+- [ ] Proposal quantity loads into broker ticket
+- [ ] Proposal order type loads into broker ticket
+- [ ] Proposal limit price loads into broker ticket
+- [ ] Risk check works with loaded proposal
+- [ ] Manual confirmation still required
+- [ ] IBKR paper order submission still requires explicit button click
+- [ ] No automatic broker submission added
+- [ ] No live trading enabled
