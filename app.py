@@ -1,3 +1,4 @@
+from environment_reset import evaluate_environment_reset, reset_checklist_to_dataframe, bulk_update_reset_checklist, reset_checklist_to_default
 from broker_environment import get_environment_recommendation
 from live_order_dry_run import run_live_order_dry_run
 from live_warning import read_warning_state, acknowledge_live_warning, reset_live_warning_acknowledgement, WARNING_STATEMENTS
@@ -2485,6 +2486,116 @@ if "latest_live_order_dry_run" in st.session_state:
     summary_col3.metric("Blocker Count", len(latest_dry_run.get("blockers", [])))
 
 
+
+
+
+
+# ==============================
+# Environment Reset Checklist
+# ==============================
+
+st.markdown("---")
+st.header("Environment Reset Checklist")
+st.write(
+    "Use this after IBKR paper order testing or live read-only checks to confirm "
+    "that the system has been returned to a safer state."
+)
+
+reset_eval = evaluate_environment_reset()
+
+reset_col1, reset_col2, reset_col3, reset_col4 = st.columns(4)
+
+reset_col1.metric("Reset Status", reset_eval.get("status"))
+reset_col2.metric("Reset Score", f"{reset_eval.get('reset_score', 0) * 100:.1f}%")
+reset_col3.metric("Completed", reset_eval.get("completed_count"))
+reset_col4.metric("Missing", reset_eval.get("missing_count"))
+
+if reset_eval.get("reset_complete"):
+    st.success(reset_eval.get("recommendation"))
+else:
+    st.warning(reset_eval.get("recommendation"))
+
+with st.expander("Missing Reset Items"):
+    st.write(reset_eval.get("missing_items", []))
+
+with st.expander("Completed Reset Items"):
+    st.write(reset_eval.get("completed_items", []))
+
+st.subheader("Reset Checklist Items")
+
+reset_df = reset_checklist_to_dataframe()
+
+edited_reset_df = st.data_editor(
+    reset_df,
+    use_container_width=True,
+    hide_index=True,
+    key="environment_reset_editor"
+)
+
+reset_notes = st.text_area(
+    "Environment Reset Notes",
+    value=reset_eval.get("notes", ""),
+    key="environment_reset_notes"
+)
+
+save_reset_button = st.button(
+    "Save Environment Reset Checklist",
+    key="save_environment_reset_checklist"
+)
+
+if save_reset_button:
+    updates = {}
+
+    for _, row in edited_reset_df.iterrows():
+        updates[row["reset_item"]] = bool(row["completed"])
+
+    bulk_update_reset_checklist(
+        checklist_updates=updates,
+        updated_by="streamlit_dashboard",
+        notes=reset_notes
+    )
+
+    log_audit_event(
+        event_type="ENVIRONMENT_RESET_CHECKLIST_SAVED",
+        broker_name="ibkr",
+        execution_mode=EXECUTION_MODE,
+        broker_status="not_submitted",
+        message="Environment reset checklist saved.",
+        details={
+            "updates": updates,
+            "notes": reset_notes
+        }
+    )
+
+    st.success("Environment reset checklist saved.")
+    st.rerun()
+
+reset_default_button = st.button(
+    "Reset Environment Checklist to Default",
+    key="reset_environment_checklist_to_default"
+)
+
+if reset_default_button:
+    reset_checklist_to_default()
+
+    log_audit_event(
+        event_type="ENVIRONMENT_RESET_CHECKLIST_RESET",
+        broker_name="ibkr",
+        execution_mode=EXECUTION_MODE,
+        broker_status="not_submitted",
+        message="Environment reset checklist reset to default."
+    )
+
+    st.warning("Environment reset checklist reset.")
+    st.rerun()
+
+st.subheader("Manual Reset Guidance")
+
+st.info(
+    "Recommended safe reset after paper order testing: set IBKR_READ_ONLY=true, "
+    "set IBKR_ENABLE_ORDERS=false, confirm ALLOW_LIVE_TRADING=False, "
+    "confirm LIVE_TRADING_ENABLED=False, restart Streamlit, and check the Broker Environment Safety Panel."
+)
 
 
 # ==============================
