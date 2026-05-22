@@ -132,11 +132,31 @@ class PaperBroker(BaseBroker):
 
         total_equity = cash_balance + total_market_value
 
+        initial_cash_value = getattr(self, "initial_cash", None)
+
+        if initial_cash_value is None:
+            initial_cash_value = getattr(self, "starting_cash", None)
+
+        if initial_cash_value is None:
+            initial_cash_value = cash_balance + sum([
+                position.get("avg_price", 0.0) * position.get("quantity", 0.0)
+                for position in open_positions
+            ])
+
+        try:
+            initial_cash_value = float(initial_cash_value)
+        except Exception:
+            initial_cash_value = 0.0
+
         return {
+            "initial_cash": initial_cash_value,
+            "starting_cash": initial_cash_value,
             "cash_balance": cash_balance,
             "cash": cash_balance,
             "total_market_value": total_market_value,
+            "market_value": total_market_value,
             "total_unrealized_pnl": total_unrealized_pnl,
+            "unrealized_pnl": total_unrealized_pnl,
             "total_equity": total_equity,
             "equity": total_equity,
             "open_positions": open_positions,
