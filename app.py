@@ -3781,7 +3781,7 @@ p_col1, p_col2, p_col3, p_col4 = st.columns(4)
 p_col1.metric("Paper Cash", f"R {portfolio_account['cash']:,.2f}")
 p_col2.metric("Paper Equity", f"R {portfolio_account['equity']:,.2f}")
 p_col3.metric("Initial Cash", f"R {portfolio_account['initial_cash']:,.2f}")
-p_col4.metric("Open Positions", portfolio_account["open_positions"])
+p_col4.metric("Open Positions", len(portfolio_account.get("open_positions", [])))
 
 # Calculate total unrealized P&L
 if portfolio_positions:
