@@ -352,3 +352,15 @@
 - [ ] Warnings and blockers displayed
 - [ ] No broker settings changed automatically
 - [ ] No live trading enabled
+
+## Lesson 92 Environment Reset Checklist
+
+- [ ] environment_reset.py created
+- [ ] test_environment_reset.py created
+- [ ] Environment reset checklist tested
+- [ ] Environment Reset Checklist added to Streamlit
+- [ ] Reset score displayed
+- [ ] Missing reset items displayed
+- [ ] Reset checklist audit logging added
+- [ ] No environment settings changed automatically
+- [ ] No live trading enabled
