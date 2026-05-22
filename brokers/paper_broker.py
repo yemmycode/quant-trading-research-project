@@ -58,21 +58,91 @@ class PaperBroker(BaseBroker):
             )
 
     def get_account_info(self):
-        total_position_value = 0
+        """
+        Return safe simulated account information.
 
-        for ticker, position in self.positions.items():
+        This version does not crash when a latest price is missing.
+        It falls back to average entry price and records a warning.
+        """
+
+        total_market_value = 0.0
+        total_unrealized_pnl = 0.0
+        open_positions = []
+        price_warnings = []
+
+        positions_dict = getattr(self, "positions", {})
+
+        if positions_dict is None:
+            positions_dict = {}
+
+        for ticker, position in positions_dict.items():
+            if not isinstance(position, dict):
+                continue
+
+            try:
+                quantity = float(position.get("quantity", 0) or 0)
+            except Exception:
+                quantity = 0.0
+
+            try:
+                avg_price = float(
+                    position.get("avg_price")
+                    or position.get("average_price")
+                    or position.get("entry_price")
+                    or position.get("avg_entry_price")
+                    or 0.0
+                )
+            except Exception:
+                avg_price = 0.0
+
             latest_price = self.get_latest_price(ticker)
-            total_position_value += position["quantity"] * latest_price
 
-        equity = self.cash + total_position_value
+            if latest_price is None:
+                latest_price = avg_price
+
+                price_warnings.append(
+                    f"No latest market price found for {ticker}. "
+                    "Using average entry price as fallback."
+                )
+
+            market_value = quantity * latest_price
+            unrealized_pnl = (latest_price - avg_price) * quantity
+
+            total_market_value += market_value
+            total_unrealized_pnl += unrealized_pnl
+
+            open_positions.append({
+                "ticker": ticker,
+                "quantity": quantity,
+                "avg_price": avg_price,
+                "latest_price": latest_price,
+                "market_value": market_value,
+                "unrealized_pnl": unrealized_pnl,
+            })
+
+        cash_value = getattr(self, "cash", None)
+
+        if cash_value is None:
+            cash_value = getattr(self, "cash_balance", 0.0)
+
+        try:
+            cash_balance = float(cash_value)
+        except Exception:
+            cash_balance = 0.0
+
+        total_equity = cash_balance + total_market_value
 
         return {
-            "cash": round(self.cash, 2),
-            "equity": round(equity, 2),
-            "initial_cash": round(self.initial_cash, 2),
-            "open_positions": len(self.positions)
+            "cash_balance": cash_balance,
+            "cash": cash_balance,
+            "total_market_value": total_market_value,
+            "total_unrealized_pnl": total_unrealized_pnl,
+            "total_equity": total_equity,
+            "equity": total_equity,
+            "open_positions": open_positions,
+            "positions": open_positions,
+            "price_warnings": price_warnings,
         }
-
     def get_positions(self):
         enriched_positions = []
 
@@ -94,25 +164,54 @@ class PaperBroker(BaseBroker):
         return enriched_positions
 
     def get_latest_price(self, ticker):
-        ticker = ticker.upper()
+        """
+        Return the latest known price for a ticker.
 
-        data = yf.download(ticker, period="5d", progress=False)
+        Safe fallback order:
+        1. Latest cached market price
+        2. Average entry price from open position
+        3. None
 
-        if data.empty:
-            raise ValueError(f"No latest price data found for {ticker}")
+        This prevents the dashboard from crashing when positions exist
+        but no fresh price has been loaded after restart/deployment.
+        """
 
-        close_price = data["Close"]
+        ticker = str(ticker).upper().strip()
 
-        if hasattr(close_price, "iloc"):
-            if len(close_price.shape) > 1:
-                latest_price = close_price.iloc[-1, 0]
-            else:
-                latest_price = close_price.iloc[-1]
-        else:
-            latest_price = close_price
+        # Try common latest price dictionaries first
+        for attr_name in ["latest_prices", "market_data", "prices"]:
+            price_store = getattr(self, attr_name, None)
 
-        return float(latest_price)
+            if isinstance(price_store, dict):
+                price = price_store.get(ticker)
 
+                if price is not None:
+                    try:
+                        return float(price)
+                    except Exception:
+                        pass
+
+        # Fallback to position average price if available
+        positions_dict = getattr(self, "positions", {})
+
+        if isinstance(positions_dict, dict):
+            position = positions_dict.get(ticker)
+
+            if isinstance(position, dict):
+                avg_price = (
+                    position.get("avg_price")
+                    or position.get("average_price")
+                    or position.get("entry_price")
+                    or position.get("avg_entry_price")
+                )
+
+                if avg_price is not None:
+                    try:
+                        return float(avg_price)
+                    except Exception:
+                        pass
+
+        return None
     def submit_order(self, ticker, side, quantity, order_type="market"):
         ticker = ticker.upper()
         side = side.lower()
