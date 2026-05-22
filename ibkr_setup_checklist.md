@@ -316,3 +316,16 @@
 - [ ] Live Trading Warning Screen added to Streamlit
 - [ ] Warning acknowledgement audit logging added
 - [ ] No live trading enabled
+
+## Lesson 89 Live Order Dry Run Mode
+
+- [ ] live_order_dry_run.py created
+- [ ] test_live_order_dry_run.py created
+- [ ] Dry run tested
+- [ ] Live Order Dry Run Mode added to Streamlit
+- [ ] Dry run confirms no broker submission
+- [ ] Dry run checks emergency stop
+- [ ] Dry run checks live warning acknowledgement
+- [ ] Dry run checks live mode lock
+- [ ] Dry run checks risk manager
+- [ ] No live trading enabled

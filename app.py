@@ -1,3 +1,4 @@
+from live_order_dry_run import run_live_order_dry_run
 from live_warning import read_warning_state, acknowledge_live_warning, reset_live_warning_acknowledgement, WARNING_STATEMENTS
 from live_mode_lock import evaluate_live_mode_lock, explain_live_mode_lock
 from live_readiness import read_readiness_state, update_readiness_item, bulk_update_readiness, evaluate_live_readiness, readiness_to_dataframe
@@ -2251,6 +2252,236 @@ st.info(
     "For now, this should remain locked. The next steps are warning screen, dry-run mode, "
     "and only later very small manual live testing after all reviews are complete."
 )
+
+
+
+
+# ==============================
+# Live Order Dry Run Mode
+# ==============================
+
+st.markdown("---")
+st.header("Live Order Dry Run Mode")
+st.write(
+    "Build and validate a future live order without submitting it to IBKR. "
+    "This is a safety simulation only."
+)
+
+st.warning(
+    "Dry run mode does not place trades. It does not enable live trading. "
+    "It only checks whether the proposed live order would pass current safety gates."
+)
+
+latest_order_proposal_for_dry_run = st.session_state.get("latest_order_proposal", {})
+
+use_latest_proposal_for_dry_run = False
+
+if latest_order_proposal_for_dry_run and latest_order_proposal_for_dry_run.get("actionable", False):
+    use_latest_proposal_for_dry_run = st.checkbox(
+        "Use latest actionable order proposal for dry run",
+        value=True,
+        key="use_latest_proposal_for_live_dry_run"
+    )
+else:
+    st.info("No actionable order proposal is available. You can still enter dry-run details manually.")
+
+dry_col1, dry_col2, dry_col3 = st.columns(3)
+
+with dry_col1:
+    dry_ticker_default = latest_order_proposal_for_dry_run.get("ticker", "SPY") if use_latest_proposal_for_dry_run else "SPY"
+    dry_ticker_options = ["SPY", "QQQ", "AAPL", "MSFT"]
+
+    if dry_ticker_default not in dry_ticker_options:
+        dry_ticker_default = "SPY"
+
+    dry_run_ticker = st.selectbox(
+        "Dry Run Ticker",
+        dry_ticker_options,
+        index=dry_ticker_options.index(dry_ticker_default),
+        key="dry_run_ticker"
+    )
+
+with dry_col2:
+    dry_side_default = latest_order_proposal_for_dry_run.get("side", "BUY") if use_latest_proposal_for_dry_run else "BUY"
+    dry_side_options = ["BUY", "SELL"]
+
+    if dry_side_default not in dry_side_options:
+        dry_side_default = "BUY"
+
+    dry_run_side = st.selectbox(
+        "Dry Run Side",
+        dry_side_options,
+        index=dry_side_options.index(dry_side_default),
+        key="dry_run_side"
+    )
+
+with dry_col3:
+    dry_asset_default = latest_order_proposal_for_dry_run.get("asset_type", "etf") if use_latest_proposal_for_dry_run else "etf"
+    dry_asset_options = ["etf", "stock"]
+
+    if dry_asset_default not in dry_asset_options:
+        dry_asset_default = "etf"
+
+    dry_run_asset_type = st.selectbox(
+        "Dry Run Asset Type",
+        dry_asset_options,
+        index=dry_asset_options.index(dry_asset_default),
+        key="dry_run_asset_type"
+    )
+
+dry_col4, dry_col5, dry_col6 = st.columns(3)
+
+with dry_col4:
+    dry_quantity_default = float(latest_order_proposal_for_dry_run.get("quantity", 1.0)) if use_latest_proposal_for_dry_run else 1.0
+
+    dry_run_quantity = st.number_input(
+        "Dry Run Quantity",
+        min_value=0.0,
+        value=dry_quantity_default,
+        step=1.0,
+        key="dry_run_quantity"
+    )
+
+with dry_col5:
+    dry_order_type_default = latest_order_proposal_for_dry_run.get("order_type", "LMT") if use_latest_proposal_for_dry_run else "LMT"
+    dry_order_type_options = ["LMT", "MKT"]
+
+    if dry_order_type_default not in dry_order_type_options:
+        dry_order_type_default = "LMT"
+
+    dry_run_order_type = st.selectbox(
+        "Dry Run Order Type",
+        dry_order_type_options,
+        index=dry_order_type_options.index(dry_order_type_default),
+        key="dry_run_order_type"
+    )
+
+with dry_col6:
+    dry_limit_default = latest_order_proposal_for_dry_run.get("limit_price", 1.00) if use_latest_proposal_for_dry_run else 1.00
+
+    if dry_limit_default is None:
+        dry_limit_default = 1.00
+
+    dry_run_limit_price = st.number_input(
+        "Dry Run Limit Price",
+        min_value=0.0,
+        value=float(dry_limit_default),
+        step=0.01,
+        format="%.2f",
+        key="dry_run_limit_price"
+    )
+
+dry_col7, dry_col8, dry_col9 = st.columns(3)
+
+with dry_col7:
+    dry_run_position_size = st.slider(
+        "Dry Run Proposed Position Size",
+        min_value=0.001,
+        max_value=0.10,
+        value=0.01,
+        step=0.001,
+        key="dry_run_position_size"
+    )
+
+with dry_col8:
+    dry_current_position_quantity = st.number_input(
+        "Dry Run Current Position Quantity",
+        min_value=0.0,
+        value=0.0,
+        step=1.0,
+        key="dry_current_position_quantity"
+    )
+
+with dry_col9:
+    dry_run_manual_confirmation = st.checkbox(
+        "Dry Run Manual Confirmation Given",
+        value=False,
+        key="dry_run_manual_confirmation"
+    )
+
+run_dry_run_button = st.button(
+    "Run Live Order Dry Run",
+    key="run_live_order_dry_run_button"
+)
+
+if run_dry_run_button:
+    try:
+        estimated_price = dry_run_limit_price if dry_run_order_type == "LMT" else None
+        estimated_order_value = None
+
+        if estimated_price is not None:
+            estimated_order_value = float(dry_run_quantity) * float(estimated_price)
+
+        dry_run_result = run_live_order_dry_run(
+            ticker=dry_run_ticker,
+            side=dry_run_side,
+            quantity=dry_run_quantity,
+            order_type=dry_run_order_type,
+            limit_price=dry_run_limit_price if dry_run_order_type == "LMT" else None,
+            asset_type=dry_run_asset_type,
+            proposed_position_size=dry_run_position_size,
+            estimated_price=estimated_price,
+            estimated_order_value=estimated_order_value,
+            current_position_quantity=dry_current_position_quantity,
+            manual_confirmation_given=dry_run_manual_confirmation,
+            strategy_name=latest_order_proposal_for_dry_run.get("strategy_label") if use_latest_proposal_for_dry_run else "manual_dry_run",
+            signal=latest_order_proposal_for_dry_run.get("signal_action") if use_latest_proposal_for_dry_run else None
+        )
+
+        st.session_state["latest_live_order_dry_run"] = dry_run_result
+
+        if dry_run_result.get("dry_run_passed"):
+            st.success("Dry run passed. No order was submitted.")
+        else:
+            st.warning("Dry run blocked. No order was submitted.")
+
+        st.subheader("Dry Run Recommendation")
+        st.write(dry_run_result.get("recommendation"))
+
+        st.subheader("Dry Run Blockers")
+        blockers = dry_run_result.get("blockers", [])
+
+        if blockers:
+            st.write(blockers)
+        else:
+            st.success("No blockers found.")
+
+        with st.expander("Full Dry Run Report"):
+            st.json(dry_run_result)
+
+        log_audit_event(
+            event_type="LIVE_ORDER_DRY_RUN_COMPLETED",
+            ticker=dry_run_ticker,
+            side=dry_run_side,
+            quantity=dry_run_quantity,
+            order_type=dry_run_order_type,
+            limit_price=dry_run_limit_price if dry_run_order_type == "LMT" else None,
+            strategy_name=latest_order_proposal_for_dry_run.get("strategy_label") if use_latest_proposal_for_dry_run else "manual_dry_run",
+            signal=latest_order_proposal_for_dry_run.get("signal_action") if use_latest_proposal_for_dry_run else None,
+            risk_approved=dry_run_result.get("risk_check", {}).get("approved"),
+            risk_reason=dry_run_result.get("risk_check", {}).get("reason"),
+            manual_confirmation=dry_run_manual_confirmation,
+            broker_name="ibkr",
+            execution_mode=EXECUTION_MODE,
+            broker_status="dry_run_only",
+            message="Live order dry run completed. No order submitted.",
+            details=dry_run_result
+        )
+
+    except Exception as e:
+        st.error("Live order dry run failed.")
+        st.exception(e)
+
+if "latest_live_order_dry_run" in st.session_state:
+    st.subheader("Latest Live Order Dry Run Summary")
+
+    latest_dry_run = st.session_state["latest_live_order_dry_run"]
+
+    summary_col1, summary_col2, summary_col3 = st.columns(3)
+
+    summary_col1.metric("Dry Run Passed", str(latest_dry_run.get("dry_run_passed")))
+    summary_col2.metric("Submitted to Broker", str(latest_dry_run.get("submitted_to_broker")))
+    summary_col3.metric("Blocker Count", len(latest_dry_run.get("blockers", [])))
 
 
 # ==============================
