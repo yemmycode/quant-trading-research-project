@@ -329,3 +329,15 @@
 - [ ] Dry run checks live mode lock
 - [ ] Dry run checks risk manager
 - [ ] No live trading enabled
+
+## Lesson 90 IBKR Live Read-Only Connection
+
+- [ ] test_ibkr_live_read_only.py created
+- [ ] .env prepared with IBKR_TRADING_MODE=live
+- [ ] .env prepared with IBKR_PORT=7496
+- [ ] .env kept with IBKR_READ_ONLY=true
+- [ ] .env kept with IBKR_ENABLE_ORDERS=false
+- [ ] TWS Live API read-only settings reviewed
+- [ ] Live read-only connection tested successfully
+- [ ] No live orders placed
+- [ ] No live trading enabled
