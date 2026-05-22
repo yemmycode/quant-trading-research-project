@@ -364,3 +364,17 @@
 - [ ] Reset checklist audit logging added
 - [ ] No environment settings changed automatically
 - [ ] No live trading enabled
+
+## Lesson 93 System Health Check Dashboard
+
+- [ ] system_health.py created
+- [ ] test_system_health.py created
+- [ ] System health test executed
+- [ ] Streamlit System Health Check Dashboard added
+- [ ] Required files checked
+- [ ] Module imports checked
+- [ ] Config safety checked
+- [ ] Safety systems checked
+- [ ] Local logs checked
+- [ ] No broker connection required
+- [ ] No live trading enabled

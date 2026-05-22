@@ -1,4 +1,3 @@
-from system_health import run_system_health_check
 from environment_reset import evaluate_environment_reset, reset_checklist_to_dataframe, bulk_update_reset_checklist, reset_checklist_to_default
 from broker_environment import get_environment_recommendation
 from live_order_dry_run import run_live_order_dry_run
@@ -3749,107 +3748,6 @@ if "ibkr_open_orders" in st.session_state:
         st.info("No open IBKR paper orders found.")
 
 
-
-
-# ==============================
-# System Health Check Dashboard
-# ==============================
-
-st.markdown("---")
-st.header("System Health Check Dashboard")
-st.write(
-    "Run a full diagnostic check of project files, imports, safety systems, config, and logs. "
-    "This does not connect to IBKR or place orders."
-)
-
-run_health_check_button = st.button(
-    "Run System Health Check",
-    key="run_system_health_check_button"
-)
-
-if run_health_check_button:
-    health_result = run_system_health_check()
-    st.session_state["latest_system_health_check"] = health_result
-
-if "latest_system_health_check" in st.session_state:
-    health_result = st.session_state["latest_system_health_check"]
-
-    health_col1, health_col2, health_col3 = st.columns(3)
-
-    health_col1.metric("Health Status", health_result.get("status"))
-    health_col2.metric("Overall OK", str(health_result.get("overall_ok")))
-    health_col3.metric("Checked At", health_result.get("timestamp"))
-
-    if health_result.get("overall_ok"):
-        st.success(health_result.get("recommendation"))
-    elif health_result.get("status") == "warning":
-        st.warning(health_result.get("recommendation"))
-    else:
-        st.error(health_result.get("recommendation"))
-
-    st.subheader("Health Summary")
-    st.json(health_result.get("summary", {}))
-
-    st.subheader("Required Files")
-    st.dataframe(pd.DataFrame(health_result.get("files", [])), use_container_width=True)
-
-    st.subheader("Required Folders")
-    st.dataframe(pd.DataFrame(health_result.get("folders", [])), use_container_width=True)
-
-    st.subheader("Module Import Checks")
-    module_df = pd.DataFrame(health_result.get("modules", []))
-
-    if not module_df.empty:
-        st.dataframe(module_df, use_container_width=True)
-
-        failed_modules = module_df[module_df["import_ok"] == False]
-
-        if not failed_modules.empty:
-            st.error("Some modules failed to import.")
-            st.dataframe(failed_modules, use_container_width=True)
-    else:
-        st.info("No module check results found.")
-
-    st.subheader("Config Safety")
-    config_safety = health_result.get("config_safety", {})
-
-    if config_safety.get("ok"):
-        st.success("Config safety check passed.")
-    else:
-        st.error("Config safety check has blockers.")
-
-    with st.expander("Config Safety Details"):
-        st.json(config_safety)
-
-    st.subheader("Safety Systems")
-    safety_systems = health_result.get("safety_systems", {})
-
-    safety_rows = []
-
-    for system_name, system_result in safety_systems.items():
-        safety_rows.append({
-            "system": system_name,
-            "ok": system_result.get("ok", False),
-            "error": system_result.get("error", "")
-        })
-
-    st.dataframe(pd.DataFrame(safety_rows), use_container_width=True)
-
-    with st.expander("Full Safety System Details"):
-        st.json(safety_systems)
-
-    st.subheader("Local Logs")
-    st.dataframe(pd.DataFrame(health_result.get("logs", [])), use_container_width=True)
-
-    st.download_button(
-        label="Download System Health Check JSON",
-        data=str(health_result),
-        file_name="system_health_check.txt",
-        mime="text/plain",
-        key="download_system_health_check"
-    )
-
-
 # ==============================
 # Portfolio Overview
 # ==============================
@@ -3883,7 +3781,7 @@ p_col1, p_col2, p_col3, p_col4 = st.columns(4)
 p_col1.metric("Paper Cash", f"R {portfolio_account['cash']:,.2f}")
 p_col2.metric("Paper Equity", f"R {portfolio_account['equity']:,.2f}")
 p_col3.metric("Initial Cash", f"R {portfolio_account['initial_cash']:,.2f}")
-p_col4.metric("Open Positions", len(portfolio_account.get("open_positions", [])))
+p_col4.metric("Open Positions", portfolio_account["open_positions"])
 
 # Calculate total unrealized P&L
 if portfolio_positions:
