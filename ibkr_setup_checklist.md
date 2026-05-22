@@ -341,3 +341,14 @@
 - [ ] Live read-only connection tested successfully
 - [ ] No live orders placed
 - [ ] No live trading enabled
+
+## Lesson 91 Broker Environment Safety Panel
+
+- [ ] broker_environment.py created
+- [ ] test_broker_environment.py created
+- [ ] Broker environment classifier tested
+- [ ] Broker Environment Safety Panel added to Streamlit
+- [ ] Environment status displayed
+- [ ] Warnings and blockers displayed
+- [ ] No broker settings changed automatically
+- [ ] No live trading enabled

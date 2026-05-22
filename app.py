@@ -1,3 +1,4 @@
+from broker_environment import get_environment_recommendation
 from live_order_dry_run import run_live_order_dry_run
 from live_warning import read_warning_state, acknowledge_live_warning, reset_live_warning_acknowledgement, WARNING_STATEMENTS
 from live_mode_lock import evaluate_live_mode_lock, explain_live_mode_lock
@@ -2482,6 +2483,55 @@ if "latest_live_order_dry_run" in st.session_state:
     summary_col1.metric("Dry Run Passed", str(latest_dry_run.get("dry_run_passed")))
     summary_col2.metric("Submitted to Broker", str(latest_dry_run.get("submitted_to_broker")))
     summary_col3.metric("Blocker Count", len(latest_dry_run.get("blockers", [])))
+
+
+
+
+# ==============================
+# Broker Environment Safety Panel
+# ==============================
+
+st.markdown("---")
+st.header("Broker Environment Safety Panel")
+st.write(
+    "Review the current broker environment before running any broker-related workflow. "
+    "This panel does not change settings."
+)
+
+env_result = get_environment_recommendation()
+
+env_col1, env_col2, env_col3 = st.columns(3)
+
+env_col1.metric("Environment Status", env_result.get("status"))
+env_col2.metric("Safe", str(env_result.get("safe")))
+env_col3.metric("Blockers", len(env_result.get("blockers", [])))
+
+if env_result.get("safe"):
+    st.success(env_result.get("message"))
+else:
+    st.error(env_result.get("message"))
+
+st.subheader("Environment Recommendation")
+st.info(env_result.get("recommendation"))
+
+warnings_list = env_result.get("warnings", [])
+blockers_list = env_result.get("blockers", [])
+
+if warnings_list:
+    st.subheader("Warnings")
+    st.warning(warnings_list)
+
+if blockers_list:
+    st.subheader("Blockers")
+    st.error(blockers_list)
+
+with st.expander("Current Broker Environment Snapshot"):
+    st.json(env_result.get("snapshot", {}))
+
+st.caption(
+    "To change broker environment, update your local .env/config settings intentionally, "
+    "then restart Streamlit. This panel is display-only."
+)
 
 
 # ==============================
