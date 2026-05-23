@@ -47,3 +47,6 @@ live_trading_readiness.json
 readiness/live_trading_warning_acknowledgement.json
 # Local environment reset checklist state
 readiness/environment_reset_checklist.json
+# Local SQLite trading database
+database/
+trading_system.db

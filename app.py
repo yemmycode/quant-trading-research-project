@@ -1,3 +1,4 @@
+from trading_database import initialize_trading_database, get_database_status, read_table
 from secure_broker_architecture import get_secure_broker_architecture_status
 from deployment_health import run_deployment_health_check
 from system_health import run_system_health_check
@@ -3881,6 +3882,98 @@ if "latest_deployment_health_check" in st.session_state:
         mime="text/plain",
         key="download_deployment_health_check"
     )
+
+
+
+
+# ==============================
+# SQLite Trading Database
+# ==============================
+
+st.markdown("---")
+st.header("SQLite Trading Database")
+st.write(
+    "Review the local SQLite database foundation for signals, proposals, risk checks, "
+    "broker orders, audit events, and system events."
+)
+
+init_db_button = st.button(
+    "Initialize Trading Database",
+    key="initialize_trading_database_button"
+)
+
+if init_db_button:
+    db_file = initialize_trading_database()
+    st.success("Trading database initialized.")
+    st.caption(db_file)
+
+db_status = get_database_status()
+
+db_col1, db_col2 = st.columns(2)
+
+db_col1.metric("Database Exists", str(db_status.get("database_exists")))
+db_col2.metric("Database File", db_status.get("database_file"))
+
+st.subheader("Database Tables")
+
+tables_df = pd.DataFrame(db_status.get("tables", []))
+
+if not tables_df.empty:
+    st.dataframe(tables_df, use_container_width=True)
+else:
+    st.info("No database table status available.")
+
+st.subheader("View Database Table")
+
+table_to_view = st.selectbox(
+    "Select Table",
+    [
+        "signals",
+        "order_proposals",
+        "risk_checks",
+        "broker_orders",
+        "audit_events",
+        "system_events",
+    ],
+    key="database_table_to_view"
+)
+
+table_limit = st.number_input(
+    "Rows to View",
+    min_value=10,
+    max_value=1000,
+    value=100,
+    step=10,
+    key="database_table_limit"
+)
+
+view_table_button = st.button(
+    "View Selected Database Table",
+    key="view_selected_database_table"
+)
+
+if view_table_button:
+    try:
+        table_df = read_table(table_to_view, limit=table_limit)
+
+        if table_df.empty:
+            st.info(f"No rows found in {table_to_view}.")
+        else:
+            st.dataframe(table_df, use_container_width=True)
+
+            csv_data = table_df.to_csv(index=False).encode("utf-8")
+
+            st.download_button(
+                label=f"Download {table_to_view} CSV",
+                data=csv_data,
+                file_name=f"{table_to_view}.csv",
+                mime="text/csv",
+                key=f"download_{table_to_view}_csv"
+            )
+
+    except Exception as e:
+        st.error("Could not read database table.")
+        st.exception(e)
 
 
 # ==============================

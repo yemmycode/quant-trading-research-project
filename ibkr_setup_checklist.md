@@ -404,3 +404,20 @@
 - [ ] Future VPS / IB Gateway architecture documented
 - [ ] No broker connection required
 - [ ] No live trading enabled
+
+## Lesson 96 SQLite Trading Database Foundation
+
+- [ ] trading_database.py created
+- [ ] test_trading_database.py created
+- [ ] SQLite database initialized
+- [ ] signals table created
+- [ ] order_proposals table created
+- [ ] risk_checks table created
+- [ ] broker_orders table created
+- [ ] audit_events table created
+- [ ] system_events table created
+- [ ] database folder excluded from GitHub
+- [ ] SQLite Trading Database section added to Streamlit
+- [ ] system_health.py updated
+- [ ] No broker connection required
+- [ ] No live trading enabled
