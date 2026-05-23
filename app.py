@@ -1,3 +1,4 @@
+from deployment_health import run_deployment_health_check
 from system_health import run_system_health_check
 from environment_reset import evaluate_environment_reset, reset_checklist_to_dataframe, bulk_update_reset_checklist, reset_checklist_to_default
 from broker_environment import get_environment_recommendation
@@ -3749,6 +3750,89 @@ if "ibkr_open_orders" in st.session_state:
         st.info("No open IBKR paper orders found.")
 
 
+
+
+
+
+# ==============================
+# Deployment Health Check
+# ==============================
+
+st.markdown("---")
+st.header("Deployment Health Check")
+st.write(
+    "Check whether the app is running locally or on Streamlit Cloud, "
+    "and confirm which features are available in the current environment."
+)
+
+run_deployment_health_button = st.button(
+    "Run Deployment Health Check",
+    key="run_deployment_health_check_button"
+)
+
+if run_deployment_health_button:
+    deployment_health_result = run_deployment_health_check()
+    st.session_state["latest_deployment_health_check"] = deployment_health_result
+
+if "latest_deployment_health_check" in st.session_state:
+    deployment_health_result = st.session_state["latest_deployment_health_check"]
+
+    dep_col1, dep_col2, dep_col3 = st.columns(3)
+
+    dep_col1.metric("Deployment Status", deployment_health_result.get("status"))
+    dep_col2.metric(
+        "Environment",
+        deployment_health_result.get("runtime", {}).get("environment")
+    )
+    dep_col3.metric("Checked At", deployment_health_result.get("timestamp"))
+
+    st.info(deployment_health_result.get("recommendation"))
+
+    st.subheader("Runtime Details")
+    with st.expander("Runtime Snapshot"):
+        st.json(deployment_health_result.get("runtime", {}))
+
+    st.subheader("IBKR Localhost Availability")
+
+    localhost_df = pd.DataFrame(deployment_health_result.get("localhost_ibkr", []))
+
+    if not localhost_df.empty:
+        st.dataframe(localhost_df, use_container_width=True)
+
+        reachable_rows = localhost_df[localhost_df["reachable"] == True]
+
+        if reachable_rows.empty:
+            st.warning(
+                "No IBKR localhost ports are reachable from this runtime. "
+                "This is normal on Streamlit Cloud and normal locally if TWS/IB Gateway is closed."
+            )
+        else:
+            st.success("At least one IBKR localhost port appears reachable.")
+    else:
+        st.info("No localhost check results available.")
+
+    st.subheader("Feature Availability Matrix")
+
+    feature_df = pd.DataFrame(deployment_health_result.get("feature_matrix", []))
+
+    if not feature_df.empty:
+        st.dataframe(feature_df, use_container_width=True)
+
+        unavailable = feature_df[feature_df["available"] == False]
+
+        if not unavailable.empty:
+            st.warning("Some features are unavailable in this runtime. Review notes below.")
+            st.dataframe(unavailable, use_container_width=True)
+    else:
+        st.info("No feature matrix available.")
+
+    st.download_button(
+        label="Download Deployment Health Check",
+        data=str(deployment_health_result),
+        file_name="deployment_health_check.txt",
+        mime="text/plain",
+        key="download_deployment_health_check"
+    )
 
 
 # ==============================
