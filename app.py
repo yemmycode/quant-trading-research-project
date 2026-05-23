@@ -1,3 +1,4 @@
+from trading_database import initialize_trading_database as sqlite_initialize_trading_database, get_database_status as sqlite_get_database_status, read_table as sqlite_read_table
 from trading_database import initialize_trading_database, get_database_status, read_table
 from secure_broker_architecture import get_secure_broker_architecture_status
 from deployment_health import run_deployment_health_check
@@ -3903,11 +3904,11 @@ init_db_button = st.button(
 )
 
 if init_db_button:
-    db_file = initialize_trading_database()
+    db_file = sqlite_initialize_trading_database()
     st.success("Trading database initialized.")
     st.caption(db_file)
 
-db_status = get_database_status()
+db_status = sqlite_get_database_status()
 
 db_col1, db_col2 = st.columns(2)
 
@@ -3954,7 +3955,7 @@ view_table_button = st.button(
 
 if view_table_button:
     try:
-        table_df = read_table(table_to_view, limit=table_limit)
+        table_df = sqlite_read_table(table_to_view, limit=table_limit)
 
         if table_df.empty:
             st.info(f"No rows found in {table_to_view}.")
@@ -4351,7 +4352,7 @@ st.header("Database Viewer")
 st.write("View latest records stored in the local SQLite database.")
 
 try:
-    db_status = get_database_status()
+    db_status = sqlite_get_database_status()
 
     with st.expander("Database Status"):
         st.json(db_status)
