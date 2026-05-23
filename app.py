@@ -1,3 +1,4 @@
+from secure_broker_architecture import get_secure_broker_architecture_status
 from deployment_health import run_deployment_health_check
 from system_health import run_system_health_check
 from environment_reset import evaluate_environment_reset, reset_checklist_to_dataframe, bulk_update_reset_checklist, reset_checklist_to_default
@@ -3752,6 +3753,53 @@ if "ibkr_open_orders" in st.session_state:
 
 
 
+
+
+
+
+# ==============================
+# Secure Broker Architecture Plan
+# ==============================
+
+st.markdown("---")
+st.header("Secure Broker Architecture Plan")
+st.write(
+    "Review the current broker architecture stage, allowed environments, prohibited actions, "
+    "and remaining components before any future live trading consideration."
+)
+
+architecture_status = get_secure_broker_architecture_status()
+
+arch_col1, arch_col2, arch_col3 = st.columns(3)
+
+arch_col1.metric("Current Stage", architecture_status.get("current_stage"))
+arch_col2.metric("Live Trading Status", architecture_status.get("live_trading_status"))
+arch_col3.metric("Checked At", architecture_status.get("timestamp"))
+
+st.info(architecture_status.get("recommendation"))
+
+st.subheader("Recommended Use Right Now")
+st.success(architecture_status.get("recommended_use_now"))
+
+st.subheader("Architecture Modes")
+
+architecture_modes_df = pd.DataFrame(architecture_status.get("architecture_modes", []))
+
+if not architecture_modes_df.empty:
+    st.dataframe(architecture_modes_df, use_container_width=True)
+
+st.subheader("Required Next Components")
+
+for item in architecture_status.get("required_next_components", []):
+    st.write(f"- {item}")
+
+st.subheader("Currently Prohibited")
+
+for item in architecture_status.get("prohibited_currently", []):
+    st.warning(item)
+
+with st.expander("Full Architecture Status"):
+    st.json(architecture_status)
 
 
 # ==============================

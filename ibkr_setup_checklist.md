@@ -378,3 +378,29 @@
 - [ ] Local logs checked
 - [ ] No broker connection required
 - [ ] No live trading enabled
+
+## Lesson 94 Deployment Health Check
+
+- [ ] deployment_health.py created
+- [ ] test_deployment_health.py created
+- [ ] Local deployment health test executed
+- [ ] Deployment Health Check added to Streamlit
+- [ ] Runtime environment detected
+- [ ] Feature availability matrix displayed
+- [ ] IBKR localhost availability explained
+- [ ] Streamlit Cloud limitations clearly shown
+- [ ] No broker order submitted
+- [ ] No live trading enabled
+
+## Lesson 95 Secure Broker Architecture Plan
+
+- [ ] secure_broker_architecture.md created
+- [ ] secure_broker_architecture.py created
+- [ ] test_secure_broker_architecture.py created
+- [ ] Secure broker architecture test executed
+- [ ] Secure Broker Architecture Plan added to Streamlit
+- [ ] Streamlit Cloud broker limitation documented
+- [ ] Local paper trading architecture documented
+- [ ] Future VPS / IB Gateway architecture documented
+- [ ] No broker connection required
+- [ ] No live trading enabled
