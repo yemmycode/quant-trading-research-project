@@ -473,3 +473,14 @@
 - [ ] system_health.py updated
 - [ ] No broker order submitted
 - [ ] No live trading enabled
+
+## Lesson 101 Connect Account Snapshot to Position-Aware Execution
+
+- [ ] Snapshot-aware position functions added
+- [ ] test_snapshot_position_aware_execution.py created
+- [ ] Snapshot position-aware test executed
+- [ ] Position-Aware dashboard updated to prefer Broker Account Snapshot
+- [ ] Manual broker ticket position gate updated to prefer snapshot
+- [ ] Syntax checks passed
+- [ ] No broker order submitted
+- [ ] No live trading enabled

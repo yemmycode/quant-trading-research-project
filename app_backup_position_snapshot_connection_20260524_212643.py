@@ -1,5 +1,5 @@
 from broker_account_snapshot import get_broker_account_snapshot, get_snapshot_summary, snapshot_positions_to_dataframe
-from position_aware_execution import evaluate_position_aware_proposal, evaluate_position_aware_proposal_with_snapshot, get_positions_from_paper_broker, get_position_aware_status
+from position_aware_execution import evaluate_position_aware_proposal, get_positions_from_paper_broker, get_position_aware_status
 from order_state_manager import create_order_state_from_proposal, record_broker_submission_state
 from duplicate_order_guard import check_duplicate_order_from_proposal, get_duplicate_guard_status, get_active_orders_for_ticker
 from order_state_manager import initialize_order_state_tables, read_order_current_states, read_order_state_events, get_order_state_manager_status
@@ -3194,16 +3194,9 @@ else:
     st.subheader("Latest Proposal")
     st.json(latest_proposal_for_position_check)
 
-    latest_snapshot_for_position_check = st.session_state.get("latest_broker_account_snapshot")
-
-    if latest_snapshot_for_position_check:
-        st.info("Using latest Broker Account Snapshot for position-aware check.")
-        current_paper_positions = latest_snapshot_for_position_check.get("positions", [])
-    else:
-        st.info("No Broker Account Snapshot found. Falling back to direct paper broker positions.")
-        current_paper_positions = get_positions_from_paper_broker(
-            st.session_state.get("paper_broker")
-        )
+    current_paper_positions = get_positions_from_paper_broker(
+        st.session_state.get("paper_broker")
+    )
 
     st.subheader("Current Paper Positions")
 
@@ -3234,20 +3227,12 @@ else:
 
     if run_position_check_button:
         try:
-            if latest_snapshot_for_position_check:
-                position_check_result = evaluate_position_aware_proposal_with_snapshot(
-                    proposal=latest_proposal_for_position_check,
-                    account_snapshot=latest_snapshot_for_position_check,
-                    allow_short_selling=allow_short_selling_pa,
-                    allow_add_to_existing=allow_add_existing_pa
-                )
-            else:
-                position_check_result = evaluate_position_aware_proposal(
-                    proposal=latest_proposal_for_position_check,
-                    current_positions=current_paper_positions,
-                    allow_short_selling=allow_short_selling_pa,
-                    allow_add_to_existing=allow_add_existing_pa
-                )
+            position_check_result = evaluate_position_aware_proposal(
+                proposal=latest_proposal_for_position_check,
+                current_positions=current_paper_positions,
+                allow_short_selling=allow_short_selling_pa,
+                allow_add_to_existing=allow_add_existing_pa
+            )
 
             st.session_state["latest_position_aware_check"] = position_check_result
 
@@ -3878,35 +3863,23 @@ if submit_broker_order:
             )
 
 
-        latest_snapshot_for_manual_ticket = st.session_state.get("latest_broker_account_snapshot")
-
-        manual_ticket_proposal_for_position_check = {
-            "ticker": broker_ticket_ticker,
-            "side": broker_ticket_side,
-            "quantity": broker_ticket_quantity,
-            "order_type": broker_ticket_order_type,
-            "limit_price": broker_ticket_limit_price,
-            "actionable": True,
-            "proposal_status": "manual_ticket",
-            "strategy_label": "manual_broker_ticket"
-        }
-
-        if latest_snapshot_for_manual_ticket:
-            position_check_result = evaluate_position_aware_proposal_with_snapshot(
-                proposal=manual_ticket_proposal_for_position_check,
-                account_snapshot=latest_snapshot_for_manual_ticket,
-                allow_short_selling=False,
-                allow_add_to_existing=False
-            )
-        else:
-            position_check_result = evaluate_position_aware_proposal(
-                proposal=manual_ticket_proposal_for_position_check,
-                current_positions=get_positions_from_paper_broker(
-                    st.session_state.get("paper_broker")
-                ),
-                allow_short_selling=False,
-                allow_add_to_existing=False
-            )
+        position_check_result = evaluate_position_aware_proposal(
+            proposal={
+                "ticker": broker_ticket_ticker,
+                "side": broker_ticket_side,
+                "quantity": broker_ticket_quantity,
+                "order_type": broker_ticket_order_type,
+                "limit_price": broker_ticket_limit_price,
+                "actionable": True,
+                "proposal_status": "manual_ticket",
+                "strategy_label": "manual_broker_ticket"
+            },
+            current_positions=get_positions_from_paper_broker(
+                st.session_state.get("paper_broker")
+            ),
+            allow_short_selling=False,
+            allow_add_to_existing=False
+        )
 
         if not position_check_result.get("allowed"):
             st.error("Order blocked by Position-Aware Execution.")
