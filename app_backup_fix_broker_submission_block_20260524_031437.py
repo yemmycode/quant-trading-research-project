@@ -1,4 +1,3 @@
-from position_aware_execution import evaluate_position_aware_proposal, get_positions_from_paper_broker, get_position_aware_status
 from order_state_manager import create_order_state_from_proposal, record_broker_submission_state
 from duplicate_order_guard import check_duplicate_order_from_proposal, get_duplicate_guard_status, get_active_orders_for_ticker
 from order_state_manager import initialize_order_state_tables, read_order_current_states, read_order_state_events, get_order_state_manager_status
@@ -3099,109 +3098,6 @@ if "latest_order_proposal" in st.session_state:
 
 
 
-
-
-# ==============================
-# Position-Aware Signal Execution
-# ==============================
-
-st.markdown("---")
-st.header("Position-Aware Signal Execution")
-st.write(
-    "Check whether the latest order proposal makes sense against the current simulated paper positions."
-)
-
-position_status = get_position_aware_status()
-
-pa_col1, pa_col2 = st.columns(2)
-
-pa_col1.metric("Short Selling Default", str(position_status.get("short_selling_default")))
-pa_col2.metric("Add to Existing Default", str(position_status.get("add_to_existing_default")))
-
-with st.expander("Position-Aware Rules"):
-    for rule in position_status.get("rules", []):
-        st.write(f"- {rule}")
-
-latest_proposal_for_position_check = st.session_state.get("latest_order_proposal")
-
-if not latest_proposal_for_position_check:
-    st.info("No latest order proposal found. Create an order proposal first.")
-else:
-    st.subheader("Latest Proposal")
-    st.json(latest_proposal_for_position_check)
-
-    current_paper_positions = get_positions_from_paper_broker(
-        st.session_state.get("paper_broker")
-    )
-
-    st.subheader("Current Paper Positions")
-
-    if current_paper_positions:
-        if isinstance(current_paper_positions, list):
-            st.dataframe(pd.DataFrame(current_paper_positions), use_container_width=True)
-        else:
-            st.json(current_paper_positions)
-    else:
-        st.info("No current paper positions found.")
-
-    allow_short_selling_pa = st.checkbox(
-        "Allow short selling for this check",
-        value=False,
-        key="allow_short_selling_position_check"
-    )
-
-    allow_add_existing_pa = st.checkbox(
-        "Allow adding to existing position for this check",
-        value=False,
-        key="allow_add_existing_position_check"
-    )
-
-    run_position_check_button = st.button(
-        "Run Position-Aware Check",
-        key="run_position_aware_check_button"
-    )
-
-    if run_position_check_button:
-        try:
-            position_check_result = evaluate_position_aware_proposal(
-                proposal=latest_proposal_for_position_check,
-                current_positions=current_paper_positions,
-                allow_short_selling=allow_short_selling_pa,
-                allow_add_to_existing=allow_add_existing_pa
-            )
-
-            st.session_state["latest_position_aware_check"] = position_check_result
-
-            if position_check_result.get("allowed"):
-                st.success("Position-aware check passed.")
-            else:
-                st.error("Position-aware check blocked this proposal.")
-
-            if position_check_result.get("blockers"):
-                st.error(position_check_result.get("blockers"))
-
-            if position_check_result.get("warnings"):
-                st.warning(position_check_result.get("warnings"))
-
-            with st.expander("Full Position-Aware Check Result"):
-                st.json(position_check_result)
-
-            log_audit_event(
-                event_type="POSITION_AWARE_CHECK_COMPLETED",
-                ticker=position_check_result.get("ticker"),
-                side=position_check_result.get("recommended_order_side"),
-                broker_name="ibkr",
-                execution_mode=EXECUTION_MODE,
-                broker_status="not_submitted",
-                message="Position-aware check completed.",
-                details=position_check_result
-            )
-
-        except Exception as e:
-            st.error("Position-aware check failed.")
-            st.exception(e)
-
-
 # ==============================
 # Duplicate Order Guard
 # ==============================
@@ -3798,45 +3694,6 @@ if submit_broker_order:
                 details=duplicate_result
             )
 
-
-        position_check_result = evaluate_position_aware_proposal(
-            proposal={
-                "ticker": broker_ticket_ticker,
-                "side": broker_ticket_side,
-                "quantity": broker_ticket_quantity,
-                "order_type": broker_ticket_order_type,
-                "limit_price": broker_ticket_limit_price,
-                "actionable": True,
-                "proposal_status": "manual_ticket",
-                "strategy_label": "manual_broker_ticket"
-            },
-            current_positions=get_positions_from_paper_broker(
-                st.session_state.get("paper_broker")
-            ),
-            allow_short_selling=False,
-            allow_add_to_existing=False
-        )
-
-        if not position_check_result.get("allowed"):
-            st.error("Order blocked by Position-Aware Execution.")
-            st.json(position_check_result)
-
-            log_audit_event(
-                event_type="DASHBOARD_ORDER_BLOCKED_POSITION_AWARE",
-                ticker=broker_ticket_ticker,
-                side=broker_ticket_side,
-                quantity=broker_ticket_quantity,
-                order_type=broker_ticket_order_type,
-                limit_price=broker_ticket_limit_price,
-                risk_approved=True,
-                manual_confirmation=manual_broker_confirmation,
-                broker_name="ibkr",
-                execution_mode=EXECUTION_MODE,
-                broker_status="blocked",
-                message="Dashboard IBKR paper order blocked by position-aware execution.",
-                details=position_check_result
-            )
-
         else:
             try:
                 broker = get_broker("ibkr")
@@ -3861,75 +3718,94 @@ if submit_broker_order:
                 st.success("IBKR paper order submitted.")
                 st.json(broker_result)
 
-                try:
-                    state_proposal = {
+            try:
+                state_proposal = {
+                    "ticker": broker_ticket_ticker,
+                    "side": broker_ticket_side,
+                    "quantity": broker_ticket_quantity,
+                    "order_type": broker_ticket_order_type,
+                    "limit_price": broker_ticket_limit_price,
+                    "estimated_order_value": estimated_ticket_value,
+                    "proposal_status": "manual_ticket_submitted",
+                    "actionable": True,
+                    "reason": "Paper order submitted from manual approval ticket."
+                }
+
+                state_create_result = create_order_state_from_proposal(
+                    proposal=state_proposal,
+                    proposal_id=None
+                )
+
+                record_broker_submission_state(
+                    order_key=state_create_result["order_key"],
+                    broker_response={
+                        **broker_result,
                         "ticker": broker_ticket_ticker,
                         "side": broker_ticket_side,
                         "quantity": broker_ticket_quantity,
                         "order_type": broker_ticket_order_type,
                         "limit_price": broker_ticket_limit_price,
-                        "estimated_order_value": estimated_ticket_value,
-                        "proposal_status": "manual_ticket_submitted",
-                        "actionable": True,
-                        "reason": "Paper order submitted from manual approval ticket."
-                    }
+                        "execution_mode": EXECUTION_MODE,
+                        "broker_name": "ibkr"
+                    },
+                    broker_order_row_id=None
+                )
 
-                    state_create_result = create_order_state_from_proposal(
-                        proposal=state_proposal,
-                        proposal_id=None
-                    )
+            except Exception as state_error:
+                st.warning("Order submitted, but order state tracking failed.")
+                st.caption(str(state_error))
 
-                    record_broker_submission_state(
-                        order_key=state_create_result["order_key"],
-                        broker_response={
-                            **broker_result,
-                            "ticker": broker_ticket_ticker,
-                            "side": broker_ticket_side,
-                            "quantity": broker_ticket_quantity,
-                            "order_type": broker_ticket_order_type,
-                            "limit_price": broker_ticket_limit_price,
-                            "execution_mode": EXECUTION_MODE,
-                            "broker_name": "ibkr"
-                        },
-                        broker_order_row_id=None
-                    )
+            log_audit_event(
+                event_type="DASHBOARD_IBKR_PAPER_ORDER_SUBMITTED",
+                ticker=broker_ticket_ticker,
+                side=broker_ticket_side,
+                quantity=broker_ticket_quantity,
+                order_type=broker_ticket_order_type,
+                limit_price=broker_ticket_limit_price,
+                risk_approved=True,
+                risk_reason=risk_result_data.get("reason"),
+                manual_confirmation=manual_broker_confirmation,
+                broker_name="ibkr",
+                execution_mode=EXECUTION_MODE,
+                order_id=broker_result.get("order_id"),
+                broker_status=broker_result.get("order_status"),
+                message="Dashboard IBKR paper order submitted from manual ticket.",
+                details={
+                    "broker_result": broker_result,
+                    "used_latest_signal_order_proposal": use_latest_proposal,
+                    "latest_order_proposal": latest_order_proposal_for_ticket if use_latest_proposal else {}
+                }
+            )
 
-                except Exception as state_error:
-                    st.warning("Order submitted, but order state tracking failed.")
-                    st.caption(str(state_error))
+            try:
+                broker.disconnect()
+            except Exception:
+                pass
 
-                try:
-                    log_audit_event(
-                        event_type="DASHBOARD_IBKR_PAPER_ORDER_SUBMITTED",
-                        ticker=broker_ticket_ticker,
-                        side=broker_ticket_side,
-                        quantity=broker_ticket_quantity,
-                        order_type=broker_ticket_order_type,
-                        limit_price=broker_ticket_limit_price,
-                        risk_approved=True,
-                        manual_confirmation=manual_broker_confirmation,
-                        broker_name="ibkr",
-                        execution_mode=EXECUTION_MODE,
-                        broker_status="submitted",
-                        message="Dashboard IBKR paper order submitted from manual approval ticket.",
-                        details={
-                            "broker_result": broker_result,
-                            "duplicate_guard": duplicate_result
-                        }
-                    )
-                except Exception as audit_error:
-                    st.warning("Order submitted, but audit logging failed.")
-                    st.caption(str(audit_error))
+        except Exception as e:
+            st.error("IBKR paper order submission failed or was blocked.")
+            st.exception(e)
 
-            except Exception as e:
-                st.error("IBKR paper order submission failed or was blocked.")
-                st.exception(e)
+            log_audit_event(
+                event_type="DASHBOARD_IBKR_PAPER_ORDER_FAILED",
+                ticker=broker_ticket_ticker,
+                side=broker_ticket_side,
+                quantity=broker_ticket_quantity,
+                order_type=broker_ticket_order_type,
+                limit_price=broker_ticket_limit_price,
+                risk_approved=True,
+                risk_reason=risk_result_data.get("reason"),
+                manual_confirmation=manual_broker_confirmation,
+                broker_name="ibkr",
+                execution_mode=EXECUTION_MODE,
+                broker_status="failed",
+                message="Dashboard IBKR paper order submission failed.",
+                error=e
+            )
 
-            finally:
-                try:
-                    broker.disconnect()
-                except Exception:
-                    pass
+
+
+
 # ==============================
 # IBKR Paper Order Management
 # ==============================

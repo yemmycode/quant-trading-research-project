@@ -448,3 +448,16 @@
 - [ ] system_health.py updated
 - [ ] No broker connection required for duplicate checks
 - [ ] No live trading enabled
+
+## Lesson 99 Position-Aware Signal Execution
+
+- [ ] position_aware_execution.py created
+- [ ] test_position_aware_execution.py created
+- [ ] Position-aware logic tested
+- [ ] Position-Aware Signal Execution added to Streamlit
+- [ ] BUY while already long blocked by default
+- [ ] SELL while flat blocked by default
+- [ ] Broker Manual Approval Ticket patched with position-aware gate
+- [ ] system_health.py updated
+- [ ] No broker connection required for position check
+- [ ] No live trading enabled
