@@ -5,3 +5,4 @@ yfinance
 openpyxl
 ib_insync
 python-dotenv
+pandas-market-calendars

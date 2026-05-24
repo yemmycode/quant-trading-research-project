@@ -484,3 +484,16 @@
 - [ ] Syntax checks passed
 - [ ] No broker order submitted
 - [ ] No live trading enabled
+
+## Lesson 102 Market Hours Awareness
+
+- [ ] pandas-market-calendars added to requirements.txt
+- [ ] market_hours.py created
+- [ ] test_market_hours.py created
+- [ ] Market hours test executed
+- [ ] Market Hours Awareness added to Streamlit
+- [ ] Manual broker ticket patched with market-hours gate
+- [ ] system_health.py updated
+- [ ] Syntax checks passed
+- [ ] No broker order submitted
+- [ ] No live trading enabled

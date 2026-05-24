@@ -1,3 +1,4 @@
+from market_hours import get_market_hours_status, should_allow_market_order_workflow
 from broker_account_snapshot import get_broker_account_snapshot, get_snapshot_summary, snapshot_positions_to_dataframe
 from position_aware_execution import evaluate_position_aware_proposal, evaluate_position_aware_proposal_with_snapshot, get_positions_from_paper_broker, get_position_aware_status
 from order_state_manager import create_order_state_from_proposal, record_broker_submission_state
@@ -2655,6 +2656,62 @@ st.caption(
 )
 
 
+
+
+# ==============================
+# Market Hours Awareness
+# ==============================
+
+st.markdown("---")
+st.header("Market Hours Awareness")
+st.write(
+    "Check whether the US market is currently open before allowing signal or order workflows."
+)
+
+refresh_market_hours_button = st.button(
+    "Refresh Market Hours Status",
+    key="refresh_market_hours_status_button"
+)
+
+if refresh_market_hours_button or "latest_market_hours_status" not in st.session_state:
+    st.session_state["latest_market_hours_status"] = get_market_hours_status()
+
+market_hours_status = st.session_state["latest_market_hours_status"]
+
+us_market = market_hours_status.get("us_market", {})
+workflow_status = market_hours_status.get("regular_order_workflow", {})
+
+mh_col1, mh_col2, mh_col3, mh_col4 = st.columns(4)
+
+mh_col1.metric("US Market Open", str(us_market.get("is_open")))
+mh_col2.metric("Session Status", us_market.get("session_status"))
+mh_col3.metric("Workflow Allowed", str(workflow_status.get("allowed")))
+mh_col4.metric("Exchange", us_market.get("exchange"))
+
+st.write("US Eastern Time:", market_hours_status.get("checked_at_us_eastern"))
+st.write("South Africa Time:", market_hours_status.get("checked_at_south_africa"))
+
+if workflow_status.get("allowed"):
+    st.success(workflow_status.get("reason"))
+else:
+    st.warning(workflow_status.get("reason"))
+
+if us_market.get("market_open_et"):
+    st.write("Market Open ET:", us_market.get("market_open_et"))
+
+if us_market.get("market_close_et"):
+    st.write("Market Close ET:", us_market.get("market_close_et"))
+
+if us_market.get("next_open_et"):
+    st.write("Next Open ET:", us_market.get("next_open_et"))
+
+if us_market.get("warning"):
+    st.warning(us_market.get("warning"))
+
+with st.expander("Full Market Hours Status"):
+    st.json(market_hours_status)
+
+
 # ==============================
 # Live Broker Signal Generator
 # ==============================
@@ -3926,6 +3983,32 @@ if submit_broker_order:
                 broker_status="blocked",
                 message="Dashboard IBKR paper order blocked by position-aware execution.",
                 details=position_check_result
+            )
+
+
+        market_workflow_result = should_allow_market_order_workflow(
+            market="US",
+            allow_after_hours=False
+        )
+
+        if not market_workflow_result.get("allowed"):
+            st.error("Order blocked by Market Hours Awareness.")
+            st.json(market_workflow_result)
+
+            log_audit_event(
+                event_type="DASHBOARD_ORDER_BLOCKED_MARKET_HOURS",
+                ticker=broker_ticket_ticker,
+                side=broker_ticket_side,
+                quantity=broker_ticket_quantity,
+                order_type=broker_ticket_order_type,
+                limit_price=broker_ticket_limit_price,
+                risk_approved=True,
+                manual_confirmation=manual_broker_confirmation,
+                broker_name="ibkr",
+                execution_mode=EXECUTION_MODE,
+                broker_status="blocked",
+                message="Dashboard IBKR paper order blocked by market hours awareness.",
+                details=market_workflow_result
             )
 
         else:
