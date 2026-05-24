@@ -461,3 +461,15 @@
 - [ ] system_health.py updated
 - [ ] No broker connection required for position check
 - [ ] No live trading enabled
+
+## Lesson 100 Broker Account Snapshot Module
+
+- [ ] broker_account_snapshot.py created
+- [ ] test_broker_account_snapshot.py created
+- [ ] Broker account snapshot test executed
+- [ ] Broker Account Snapshot added to Streamlit
+- [ ] Snapshot summary displayed
+- [ ] Position snapshot displayed
+- [ ] system_health.py updated
+- [ ] No broker order submitted
+- [ ] No live trading enabled

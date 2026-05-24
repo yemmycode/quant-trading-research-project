@@ -1,3 +1,4 @@
+from broker_account_snapshot import get_broker_account_snapshot, get_snapshot_summary, snapshot_positions_to_dataframe
 from position_aware_execution import evaluate_position_aware_proposal, get_positions_from_paper_broker, get_position_aware_status
 from order_state_manager import create_order_state_from_proposal, record_broker_submission_state
 from duplicate_order_guard import check_duplicate_order_from_proposal, get_duplicate_guard_status, get_active_orders_for_ticker
@@ -3099,6 +3100,69 @@ if "latest_order_proposal" in st.session_state:
 
 
 
+
+
+
+
+# ==============================
+# Broker Account Snapshot
+# ==============================
+
+st.markdown("---")
+st.header("Broker Account Snapshot")
+st.write(
+    "Capture a clean account snapshot from the current paper broker session. "
+    "This helps the system understand cash, equity, open positions, and P&L before making decisions."
+)
+
+snapshot_button = st.button(
+    "Capture Broker Account Snapshot",
+    key="capture_broker_account_snapshot_button"
+)
+
+if snapshot_button:
+    snapshot_result = get_broker_account_snapshot(
+        paper_broker=st.session_state.get("paper_broker")
+    )
+    st.session_state["latest_broker_account_snapshot"] = snapshot_result
+
+if "latest_broker_account_snapshot" in st.session_state:
+    snapshot_result = st.session_state["latest_broker_account_snapshot"]
+    snapshot_summary = get_snapshot_summary(snapshot_result)
+
+    if snapshot_result.get("snapshot_available"):
+        st.success("Broker account snapshot captured.")
+    else:
+        st.warning(snapshot_result.get("reason", "Snapshot unavailable."))
+
+    snap_col1, snap_col2, snap_col3, snap_col4 = st.columns(4)
+
+    snap_col1.metric("Cash", f"R {snapshot_summary.get('cash_balance', 0):,.2f}")
+    snap_col2.metric("Equity", f"R {snapshot_summary.get('total_equity', 0):,.2f}")
+    snap_col3.metric("Market Value", f"R {snapshot_summary.get('total_market_value', 0):,.2f}")
+    snap_col4.metric("Positions", snapshot_summary.get("position_count", 0))
+
+    snap_col5, snap_col6 = st.columns(2)
+
+    snap_col5.metric("Unrealized P&L", f"R {snapshot_summary.get('total_unrealized_pnl', 0):,.2f}")
+    snap_col6.metric("Environment", snapshot_summary.get("environment_status"))
+
+    if snapshot_result.get("price_warnings"):
+        st.warning(snapshot_result.get("price_warnings"))
+
+    st.subheader("Snapshot Positions")
+
+    positions_df = snapshot_positions_to_dataframe(snapshot_result)
+
+    if positions_df.empty:
+        st.info("No positions found in snapshot.")
+    else:
+        st.dataframe(positions_df, use_container_width=True)
+
+    with st.expander("Full Snapshot JSON"):
+        st.json(snapshot_result)
+else:
+    st.info("No broker account snapshot captured yet.")
 
 
 # ==============================
