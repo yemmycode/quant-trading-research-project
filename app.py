@@ -3720,92 +3720,73 @@ if submit_broker_order:
 
                 try:
                     state_proposal = {
-                    "ticker": broker_ticket_ticker,
-                    "side": broker_ticket_side,
-                    "quantity": broker_ticket_quantity,
-                    "order_type": broker_ticket_order_type,
-                    "limit_price": broker_ticket_limit_price,
-                    "estimated_order_value": estimated_ticket_value,
-                    "proposal_status": "manual_ticket_submitted",
-                    "actionable": True,
-                    "reason": "Paper order submitted from manual approval ticket."
+                        "ticker": broker_ticket_ticker,
+                        "side": broker_ticket_side,
+                        "quantity": broker_ticket_quantity,
+                        "order_type": broker_ticket_order_type,
+                        "limit_price": broker_ticket_limit_price,
+                        "estimated_order_value": estimated_ticket_value,
+                        "proposal_status": "manual_ticket_submitted",
+                        "actionable": True,
+                        "reason": "Paper order submitted from manual approval ticket."
                     }
 
                     state_create_result = create_order_state_from_proposal(
-                    proposal=state_proposal,
-                    proposal_id=None
+                        proposal=state_proposal,
+                        proposal_id=None
                     )
 
                     record_broker_submission_state(
-                    order_key=state_create_result["order_key"],
-                    broker_response={
-                    **broker_result,
-                    "ticker": broker_ticket_ticker,
-                    "side": broker_ticket_side,
-                    "quantity": broker_ticket_quantity,
-                    "order_type": broker_ticket_order_type,
-                    "limit_price": broker_ticket_limit_price,
-                    "execution_mode": EXECUTION_MODE,
-                    "broker_name": "ibkr"
-                    },
-                    broker_order_row_id=None
+                        order_key=state_create_result["order_key"],
+                        broker_response={
+                            **broker_result,
+                            "ticker": broker_ticket_ticker,
+                            "side": broker_ticket_side,
+                            "quantity": broker_ticket_quantity,
+                            "order_type": broker_ticket_order_type,
+                            "limit_price": broker_ticket_limit_price,
+                            "execution_mode": EXECUTION_MODE,
+                            "broker_name": "ibkr"
+                        },
+                        broker_order_row_id=None
                     )
 
                 except Exception as state_error:
                     st.warning("Order submitted, but order state tracking failed.")
                     st.caption(str(state_error))
 
+                try:
                     log_audit_event(
-                    event_type="DASHBOARD_IBKR_PAPER_ORDER_SUBMITTED",
-                    ticker=broker_ticket_ticker,
-                    side=broker_ticket_side,
-                    quantity=broker_ticket_quantity,
-                    order_type=broker_ticket_order_type,
-                    limit_price=broker_ticket_limit_price,
-                    risk_approved=True,
-                    risk_reason=risk_result_data.get("reason"),
-                    manual_confirmation=manual_broker_confirmation,
-                    broker_name="ibkr",
-                    execution_mode=EXECUTION_MODE,
-                    order_id=broker_result.get("order_id"),
-                    broker_status=broker_result.get("order_status"),
-                    message="Dashboard IBKR paper order submitted from manual ticket.",
-                    details={
-                    "broker_result": broker_result,
-                    "used_latest_signal_order_proposal": use_latest_proposal,
-                    "latest_order_proposal": latest_order_proposal_for_ticket if use_latest_proposal else {}
-                    }
+                        event_type="DASHBOARD_IBKR_PAPER_ORDER_SUBMITTED",
+                        ticker=broker_ticket_ticker,
+                        side=broker_ticket_side,
+                        quantity=broker_ticket_quantity,
+                        order_type=broker_ticket_order_type,
+                        limit_price=broker_ticket_limit_price,
+                        risk_approved=True,
+                        manual_confirmation=manual_broker_confirmation,
+                        broker_name="ibkr",
+                        execution_mode=EXECUTION_MODE,
+                        broker_status="submitted",
+                        message="Dashboard IBKR paper order submitted from manual approval ticket.",
+                        details={
+                            "broker_result": broker_result,
+                            "duplicate_guard": duplicate_result
+                        }
                     )
+                except Exception as audit_error:
+                    st.warning("Order submitted, but audit logging failed.")
+                    st.caption(str(audit_error))
 
-                    try:
+            except Exception as e:
+                st.error("IBKR paper order submission failed or was blocked.")
+                st.exception(e)
+
+            finally:
+                try:
                     broker.disconnect()
-                    except Exception:
+                except Exception:
                     pass
-
-        except Exception as e:
-            st.error("IBKR paper order submission failed or was blocked.")
-            st.exception(e)
-
-            log_audit_event(
-                event_type="DASHBOARD_IBKR_PAPER_ORDER_FAILED",
-                ticker=broker_ticket_ticker,
-                side=broker_ticket_side,
-                quantity=broker_ticket_quantity,
-                order_type=broker_ticket_order_type,
-                limit_price=broker_ticket_limit_price,
-                risk_approved=True,
-                risk_reason=risk_result_data.get("reason"),
-                manual_confirmation=manual_broker_confirmation,
-                broker_name="ibkr",
-                execution_mode=EXECUTION_MODE,
-                broker_status="failed",
-                message="Dashboard IBKR paper order submission failed.",
-                error=e
-            )
-
-
-
-
 # ==============================
 # IBKR Paper Order Management
 # ==============================
