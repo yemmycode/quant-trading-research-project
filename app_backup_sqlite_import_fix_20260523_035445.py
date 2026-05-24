@@ -1,5 +1,3 @@
-from order_state_manager import initialize_order_state_tables, read_order_current_states, read_order_state_events, get_order_state_manager_status
-from trading_database import initialize_trading_database as sqlite_initialize_trading_database, get_database_status as sqlite_get_database_status, read_table as sqlite_read_table
 from trading_database import initialize_trading_database, get_database_status, read_table
 from secure_broker_architecture import get_secure_broker_architecture_status
 from deployment_health import run_deployment_health_check
@@ -3888,96 +3886,6 @@ if "latest_deployment_health_check" in st.session_state:
 
 
 
-
-
-# ==============================
-# Unified Order State Manager
-# ==============================
-
-st.markdown("---")
-st.header("Unified Order State Manager")
-st.write(
-    "Track the lifecycle state of proposed, approved, submitted, filled, cancelled, rejected, and failed orders."
-)
-
-init_order_state_button = st.button(
-    "Initialize Order State Tables",
-    key="initialize_order_state_tables_button"
-)
-
-if init_order_state_button:
-    initialize_order_state_tables()
-    st.success("Order state tables initialized.")
-
-order_state_status = get_order_state_manager_status()
-
-state_col1, state_col2 = st.columns(2)
-
-state_col1.metric("Current Orders", order_state_status.get("current_orders"))
-state_col2.metric("State Events", order_state_status.get("state_events"))
-
-with st.expander("Valid Order States"):
-    st.write(order_state_status.get("valid_states", []))
-
-with st.expander("Terminal Order States"):
-    st.write(order_state_status.get("terminal_states", []))
-
-st.subheader("Current Order States")
-
-current_state_limit = st.number_input(
-    "Current State Rows",
-    min_value=10,
-    max_value=1000,
-    value=100,
-    step=10,
-    key="current_order_state_limit"
-)
-
-current_states_df = read_order_current_states(limit=current_state_limit)
-
-if current_states_df.empty:
-    st.info("No current order states found yet.")
-else:
-    st.dataframe(current_states_df, use_container_width=True)
-
-st.subheader("Order State Events")
-
-event_state_limit = st.number_input(
-    "State Event Rows",
-    min_value=10,
-    max_value=1000,
-    value=100,
-    step=10,
-    key="order_state_event_limit"
-)
-
-order_key_filter = st.text_input(
-    "Optional Order Key Filter",
-    value="",
-    key="order_key_filter"
-)
-
-if order_key_filter.strip():
-    events_df = read_order_state_events(order_key=order_key_filter.strip(), limit=event_state_limit)
-else:
-    events_df = read_order_state_events(limit=event_state_limit)
-
-if events_df.empty:
-    st.info("No order state events found yet.")
-else:
-    st.dataframe(events_df, use_container_width=True)
-
-    csv_data = events_df.to_csv(index=False).encode("utf-8")
-
-    st.download_button(
-        label="Download Order State Events CSV",
-        data=csv_data,
-        file_name="order_state_events.csv",
-        mime="text/csv",
-        key="download_order_state_events_csv"
-    )
-
-
 # ==============================
 # SQLite Trading Database
 # ==============================
@@ -3995,11 +3903,11 @@ init_db_button = st.button(
 )
 
 if init_db_button:
-    db_file = sqlite_initialize_trading_database()
+    db_file = initialize_trading_database()
     st.success("Trading database initialized.")
     st.caption(db_file)
 
-db_status = sqlite_get_database_status()
+db_status = get_database_status()
 
 db_col1, db_col2 = st.columns(2)
 
@@ -4026,8 +3934,6 @@ table_to_view = st.selectbox(
         "broker_orders",
         "audit_events",
         "system_events",
-        "order_state_events",
-        "order_current_state",
     ],
     key="database_table_to_view"
 )
@@ -4048,7 +3954,7 @@ view_table_button = st.button(
 
 if view_table_button:
     try:
-        table_df = sqlite_read_table(table_to_view, limit=table_limit)
+        table_df = read_table(table_to_view, limit=table_limit)
 
         if table_df.empty:
             st.info(f"No rows found in {table_to_view}.")
@@ -4445,7 +4351,7 @@ st.header("Database Viewer")
 st.write("View latest records stored in the local SQLite database.")
 
 try:
-    db_status = sqlite_get_database_status()
+    db_status = get_database_status()
 
     with st.expander("Database Status"):
         st.json(db_status)

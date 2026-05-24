@@ -459,6 +459,8 @@ def read_table(table_name, limit=100):
         "broker_orders",
         "audit_events",
         "system_events",
+        "order_state_events",
+        "order_current_state",
     ]
 
     if table_name not in allowed_tables:

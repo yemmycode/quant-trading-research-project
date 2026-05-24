@@ -421,3 +421,17 @@
 - [ ] system_health.py updated
 - [ ] No broker connection required
 - [ ] No live trading enabled
+
+## Lesson 97 Unified Order State Manager
+
+- [ ] order_state_manager.py created
+- [ ] test_order_state_manager.py created
+- [ ] Order state tables initialized
+- [ ] Order lifecycle state test executed
+- [ ] Unified Order State Manager added to Streamlit
+- [ ] order_state_events table added
+- [ ] order_current_state table added
+- [ ] SQLite dashboard updated to view order state tables
+- [ ] system_health.py updated
+- [ ] No broker connection required
+- [ ] No live trading enabled
