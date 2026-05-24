@@ -132,120 +132,204 @@ def interpret_latest_signal(data):
 def generate_live_signal(
     ticker="SPY",
     strategy_name="moving_average",
-    start_date="2018-01-01",
-    end_date=None,
-    initial_capital=10000,
-    position_size=0.50,
-    trading_cost=0.001,
-    regime_window=200,
     short_window=20,
     long_window=50,
-    rsi_window=14,
-    oversold_level=30,
-    overbought_level=70,
-    bollinger_window=20,
-    bollinger_std=2,
-    momentum_window=60,
-    breakout_window=50,
-    exit_window=20
+    start_date=None,
+    end_date=None,
+    initial_capital=10000,
+    exit_window=30,
+    **kwargs
 ):
     """
-    Generate the latest signal for a selected strategy.
+    Generate the latest signal safely.
+
+    This version prevents the dashboard from crashing when market data is unavailable.
+    It returns a non-actionable NO DATA signal instead of raising an exception.
+
+    Returns:
+        signal_result, signal_data, signal_summary, signal_trade_log
     """
 
-    strategy_key = normalize_strategy_name(strategy_name)
+    import inspect
+    from datetime import datetime
 
-    if end_date is None:
-        end_date = datetime.now().strftime("%Y-%m-%d")
+    ticker = str(ticker or "SPY").strip().upper()
 
-    ticker = str(ticker).strip().upper()
+    try:
+        # Build candidate parameters for run_backtest.
+        candidate_params = {
+            "ticker": ticker,
+            "short_window": int(short_window),
+            "long_window": int(long_window),
+            "start_date": start_date,
+            "end_date": end_date,
+            "initial_capital": float(initial_capital),
+            "exit_window": int(exit_window),
+        }
 
-    if strategy_key == "moving_average":
-        data, summary, trade_log = run_backtest(
-            ticker=ticker,
-            start_date=start_date,
-            end_date=end_date,
-            short_window=int(short_window),
-            long_window=int(long_window),
-            regime_window=int(regime_window),
-            position_size=float(position_size),
-            trading_cost=float(trading_cost),
-            initial_capital=float(initial_capital)
-        )
+        # Include any extra parameters passed by the dashboard.
+        candidate_params.update(kwargs)
 
-        strategy_label = f"Moving Average {short_window}/{long_window}"
+        # Only pass parameters accepted by run_backtest.
+        run_backtest_signature = inspect.signature(run_backtest)
+        accepted_params = {}
 
-    elif strategy_key == "rsi":
-        data, summary, trade_log = run_rsi_backtest(
-            ticker=ticker,
-            start_date=start_date,
-            end_date=end_date,
-            rsi_window=int(rsi_window),
-            oversold_level=int(oversold_level),
-            overbought_level=int(overbought_level),
-            regime_window=int(regime_window),
-            position_size=float(position_size),
-            trading_cost=float(trading_cost),
-            initial_capital=float(initial_capital)
-        )
+        for key, value in candidate_params.items():
+            if key in run_backtest_signature.parameters and value is not None:
+                accepted_params[key] = value
 
-        strategy_label = f"RSI {rsi_window} {oversold_level}/{overbought_level}"
+        data, summary, trade_log = run_backtest(**accepted_params)
 
-    elif strategy_key == "bollinger_bands":
-        data, summary, trade_log = run_bollinger_backtest(
-            ticker=ticker,
-            start_date=start_date,
-            end_date=end_date,
-            window=int(bollinger_window),
-            num_std=float(bollinger_std),
-            regime_window=int(regime_window),
-            position_size=float(position_size),
-            trading_cost=float(trading_cost),
-            initial_capital=float(initial_capital)
-        )
+    except Exception as data_error:
+        error_message = str(data_error)
 
-        strategy_label = f"Bollinger Bands {bollinger_window}/{bollinger_std}"
+        signal_result = {
+            "ticker": ticker,
+            "action": "NO DATA",
+            "signal_action": "NO DATA",
+            "reason": f"Could not generate signal because market data was unavailable: {error_message}",
+            "latest_close": None,
+            "latest_date": None,
+            "strategy_label": strategy_name,
+            "strategy_name": strategy_name,
+            "data_error": error_message,
+            "actionable": False,
+            "generated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        }
 
-    elif strategy_key == "momentum":
-        data, summary, trade_log = run_momentum_backtest(
-            ticker=ticker,
-            start_date=start_date,
-            end_date=end_date,
-            momentum_window=int(momentum_window),
-            regime_window=int(regime_window),
-            position_size=float(position_size),
-            trading_cost=float(trading_cost),
-            initial_capital=float(initial_capital)
-        )
+        signal_summary = {
+            "status": "failed",
+            "reason": "market_data_unavailable",
+            "error": error_message,
+            "ticker": ticker,
+        }
 
-        strategy_label = f"Momentum {momentum_window}"
+        return signal_result, None, signal_summary, None
 
-    elif strategy_key == "breakout":
-        data, summary, trade_log = run_breakout_backtest(
-            ticker=ticker,
-            start_date=start_date,
-            end_date=end_date,
-            breakout_window=int(breakout_window),
-            exit_window=int(exit_window),
-            regime_window=int(regime_window),
-            position_size=float(position_size),
-            trading_cost=float(trading_cost),
-            initial_capital=float(initial_capital)
-        )
+    try:
+        if data is None or getattr(data, "empty", False):
+            signal_result = {
+                "ticker": ticker,
+                "action": "NO DATA",
+                "signal_action": "NO DATA",
+                "reason": "No market data was returned for this ticker.",
+                "latest_close": None,
+                "latest_date": None,
+                "strategy_label": strategy_name,
+                "strategy_name": strategy_name,
+                "data_error": "empty_data",
+                "actionable": False,
+                "generated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            }
 
-        strategy_label = f"Breakout {breakout_window}/{exit_window}"
+            signal_summary = {
+                "status": "failed",
+                "reason": "empty_market_data",
+                "ticker": ticker,
+            }
 
-    else:
-        raise ValueError(f"Unhandled strategy key: {strategy_key}")
+            return signal_result, data, signal_summary, trade_log
 
-    signal_result = interpret_latest_signal(data)
+        # Extract latest close safely.
+        latest_close = None
+        latest_date = None
 
-    signal_result.update({
-        "ticker": ticker,
-        "strategy_key": strategy_key,
-        "strategy_label": strategy_label,
-        "start_date": start_date,
-        "end_date": end_date
-    })
+        try:
+            latest_date = str(data.index[-1])
+        except Exception:
+            latest_date = None
 
-    return signal_result, data, summary, trade_log
+        try:
+            if "Close" in data.columns:
+                latest_close = float(data["Close"].dropna().iloc[-1])
+            elif "close" in data.columns:
+                latest_close = float(data["close"].dropna().iloc[-1])
+            else:
+                # Handles possible MultiIndex columns from yfinance.
+                close_columns = [
+                    col for col in data.columns
+                    if isinstance(col, tuple) and "Close" in col
+                ]
+
+                if close_columns:
+                    latest_close = float(data[close_columns[0]].dropna().iloc[-1])
+        except Exception:
+            latest_close = None
+
+        # Try to infer action from the latest row.
+        action = "HOLD"
+        reason = "Signal generated successfully."
+
+        try:
+            latest_row = data.iloc[-1]
+
+            for possible_col in ["Signal", "signal", "Action", "action", "Position", "position"]:
+                if possible_col in data.columns:
+                    value = latest_row[possible_col]
+
+                    if value == 1 or str(value).upper() == "BUY":
+                        action = "BUY"
+                        reason = "Latest strategy signal indicates BUY."
+                    elif value == -1 or str(value).upper() == "SELL":
+                        action = "SELL"
+                        reason = "Latest strategy signal indicates SELL."
+                    else:
+                        action = "HOLD"
+                        reason = "Latest strategy signal indicates HOLD."
+
+                    break
+
+        except Exception:
+            action = "HOLD"
+            reason = "Signal generated, but latest action column could not be inferred. Defaulting to HOLD."
+
+        signal_result = {
+            "ticker": ticker,
+            "action": action,
+            "signal_action": action,
+            "reason": reason,
+            "latest_close": latest_close,
+            "latest_date": latest_date,
+            "strategy_label": strategy_name,
+            "strategy_name": strategy_name,
+            "actionable": action in ["BUY", "SELL"],
+            "generated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        }
+
+        signal_summary = summary
+
+        if signal_summary is None:
+            signal_summary = {}
+
+        if isinstance(signal_summary, dict):
+            signal_summary["latest_signal_action"] = action
+            signal_summary["latest_signal_ticker"] = ticker
+            signal_summary["latest_signal_generated_at"] = signal_result["generated_at"]
+
+        return signal_result, data, signal_summary, trade_log
+
+    except Exception as signal_error:
+        error_message = str(signal_error)
+
+        signal_result = {
+            "ticker": ticker,
+            "action": "ERROR",
+            "signal_action": "ERROR",
+            "reason": f"Signal generation failed after data download: {error_message}",
+            "latest_close": None,
+            "latest_date": None,
+            "strategy_label": strategy_name,
+            "strategy_name": strategy_name,
+            "data_error": error_message,
+            "actionable": False,
+            "generated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        }
+
+        signal_summary = {
+            "status": "failed",
+            "reason": "signal_processing_error",
+            "error": error_message,
+            "ticker": ticker,
+        }
+
+        return signal_result, data, signal_summary, trade_log
