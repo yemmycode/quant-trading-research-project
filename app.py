@@ -1,3 +1,5 @@
+from order_state_manager import create_order_state_from_proposal, record_broker_submission_state
+from duplicate_order_guard import check_duplicate_order_from_proposal, get_duplicate_guard_status, get_active_orders_for_ticker
 from order_state_manager import initialize_order_state_tables, read_order_current_states, read_order_state_events, get_order_state_manager_status
 from trading_database import initialize_trading_database as sqlite_initialize_trading_database, get_database_status as sqlite_get_database_status, read_table as sqlite_read_table
 from trading_database import initialize_trading_database, get_database_status, read_table
@@ -3094,6 +3096,116 @@ if "latest_order_proposal" in st.session_state:
 
 
 
+
+
+# ==============================
+# Duplicate Order Guard
+# ==============================
+
+st.markdown("---")
+st.header("Duplicate Order Guard")
+st.write(
+    "Check whether a proposed order would duplicate an existing active order. "
+    "This does not connect to IBKR or submit orders."
+)
+
+duplicate_status = get_duplicate_guard_status()
+
+dup_col1, dup_col2 = st.columns(2)
+
+dup_col1.metric("Active Order Count", duplicate_status.get("active_order_count"))
+dup_col2.metric("Checked At", duplicate_status.get("checked_at"))
+
+with st.expander("Duplicate Guard State Definitions"):
+    st.write("Active states:")
+    st.write(duplicate_status.get("active_order_states", []))
+    st.write("Terminal states:")
+    st.write(duplicate_status.get("terminal_order_states", []))
+
+st.subheader("Active Orders by Ticker")
+
+dup_ticker_filter = st.text_input(
+    "Ticker Filter",
+    value="",
+    key="duplicate_guard_ticker_filter"
+)
+
+dup_side_filter = st.selectbox(
+    "Side Filter",
+    ["", "BUY", "SELL"],
+    key="duplicate_guard_side_filter"
+)
+
+active_orders_df = get_active_orders_for_ticker(
+    ticker=dup_ticker_filter.strip() or None,
+    side=dup_side_filter or None
+)
+
+if active_orders_df.empty:
+    st.info("No active orders found for the selected filter.")
+else:
+    st.dataframe(active_orders_df, use_container_width=True)
+
+st.subheader("Check Latest Order Proposal for Duplicates")
+
+latest_proposal_for_duplicate_check = st.session_state.get("latest_order_proposal")
+
+if not latest_proposal_for_duplicate_check:
+    st.info("No latest order proposal found. Create an order proposal first.")
+else:
+    st.json(latest_proposal_for_duplicate_check)
+
+    duplicate_lookback_minutes = st.number_input(
+        "Duplicate Lookback Minutes",
+        min_value=5,
+        max_value=10080,
+        value=1440,
+        step=5,
+        key="duplicate_lookback_minutes"
+    )
+
+    run_duplicate_check_button = st.button(
+        "Run Duplicate Check on Latest Proposal",
+        key="run_duplicate_check_latest_proposal"
+    )
+
+    if run_duplicate_check_button:
+        try:
+            duplicate_result = check_duplicate_order_from_proposal(
+                latest_proposal_for_duplicate_check,
+                signal_id=None,
+                lookback_minutes=duplicate_lookback_minutes
+            )
+
+            st.session_state["latest_duplicate_check"] = duplicate_result
+
+            if duplicate_result.get("duplicate_blocked"):
+                st.error("Duplicate order blocked.")
+            else:
+                st.success("No active duplicate blocker found.")
+
+            if duplicate_result.get("warnings"):
+                st.warning(duplicate_result.get("warnings"))
+
+            with st.expander("Full Duplicate Check Result"):
+                st.json(duplicate_result)
+
+            log_audit_event(
+                event_type="DUPLICATE_ORDER_CHECK_COMPLETED",
+                ticker=duplicate_result.get("ticker"),
+                side=duplicate_result.get("side"),
+                broker_name="ibkr",
+                execution_mode=EXECUTION_MODE,
+                broker_status="not_submitted",
+                message="Duplicate order check completed.",
+                details=duplicate_result
+            )
+
+        except Exception as e:
+            st.error("Duplicate order check failed.")
+            st.exception(e)
+
+
 # ==============================
 # Signal Review Page
 # ==============================
@@ -3545,9 +3657,46 @@ if submit_broker_order:
             details=risk_result_data
         )
 
+
     else:
-        try:
-            broker = get_broker("ibkr")
+        duplicate_result = check_duplicate_order_from_proposal(
+            {
+                "ticker": broker_ticket_ticker,
+                "side": broker_ticket_side,
+                "quantity": broker_ticket_quantity,
+                "order_type": broker_ticket_order_type,
+                "limit_price": broker_ticket_limit_price,
+                "actionable": True,
+                "proposal_status": "manual_ticket",
+                "strategy_label": "manual_broker_ticket"
+            },
+            signal_id=None,
+            lookback_minutes=1440
+        )
+
+        if duplicate_result.get("duplicate_blocked"):
+            st.error("Order blocked by Duplicate Order Guard.")
+            st.json(duplicate_result)
+
+            log_audit_event(
+                event_type="DASHBOARD_ORDER_BLOCKED_DUPLICATE_GUARD",
+                ticker=broker_ticket_ticker,
+                side=broker_ticket_side,
+                quantity=broker_ticket_quantity,
+                order_type=broker_ticket_order_type,
+                limit_price=broker_ticket_limit_price,
+                risk_approved=True,
+                manual_confirmation=manual_broker_confirmation,
+                broker_name="ibkr",
+                execution_mode=EXECUTION_MODE,
+                broker_status="blocked",
+                message="Dashboard IBKR paper order blocked by duplicate order guard.",
+                details=duplicate_result
+            )
+
+        else:
+            try:
+                broker = get_broker("ibkr")
 
             if broker_ticket_order_type == "LMT":
                 broker_result = broker.submit_order(
@@ -3568,6 +3717,43 @@ if submit_broker_order:
 
             st.success("IBKR paper order submitted.")
             st.json(broker_result)
+
+            try:
+                state_proposal = {
+                    "ticker": broker_ticket_ticker,
+                    "side": broker_ticket_side,
+                    "quantity": broker_ticket_quantity,
+                    "order_type": broker_ticket_order_type,
+                    "limit_price": broker_ticket_limit_price,
+                    "estimated_order_value": estimated_ticket_value,
+                    "proposal_status": "manual_ticket_submitted",
+                    "actionable": True,
+                    "reason": "Paper order submitted from manual approval ticket."
+                }
+
+                state_create_result = create_order_state_from_proposal(
+                    proposal=state_proposal,
+                    proposal_id=None
+                )
+
+                record_broker_submission_state(
+                    order_key=state_create_result["order_key"],
+                    broker_response={
+                        **broker_result,
+                        "ticker": broker_ticket_ticker,
+                        "side": broker_ticket_side,
+                        "quantity": broker_ticket_quantity,
+                        "order_type": broker_ticket_order_type,
+                        "limit_price": broker_ticket_limit_price,
+                        "execution_mode": EXECUTION_MODE,
+                        "broker_name": "ibkr"
+                    },
+                    broker_order_row_id=None
+                )
+
+            except Exception as state_error:
+                st.warning("Order submitted, but order state tracking failed.")
+                st.caption(str(state_error))
 
             log_audit_event(
                 event_type="DASHBOARD_IBKR_PAPER_ORDER_SUBMITTED",
