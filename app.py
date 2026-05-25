@@ -1,3 +1,4 @@
+from fill_slippage_tracker import read_order_fills, summarize_slippage, get_fill_slippage_status, record_fill_from_broker_response
 from price_validation import validate_order_price_from_proposal, get_price_validation_status
 from market_hours import get_market_hours_status, should_allow_market_order_workflow
 from broker_account_snapshot import get_broker_account_snapshot, get_snapshot_summary, snapshot_positions_to_dataframe
@@ -3225,6 +3226,186 @@ else:
 
 
 
+
+
+# ==============================
+# Fill and Slippage Tracking
+# ==============================
+
+st.markdown("---")
+st.header("Fill and Slippage Tracking")
+st.write(
+    "Track order fills and compare fill prices against reference prices to monitor execution quality."
+)
+
+fill_status = get_fill_slippage_status()
+
+fs_col1, fs_col2 = st.columns(2)
+
+fs_col1.metric("Fill Count", fill_status.get("fill_count"))
+fs_col2.metric("Checked At", fill_status.get("checked_at"))
+
+st.subheader("Slippage Summary")
+
+summary = fill_status.get("summary", {})
+
+if summary.get("has_data"):
+    ss_col1, ss_col2, ss_col3, ss_col4 = st.columns(4)
+
+    ss_col1.metric("Total Fills", summary.get("fill_count"))
+    ss_col2.metric("Total Quantity", f"{summary.get('total_fill_quantity', 0):,.2f}")
+
+    avg_slip = summary.get("average_slippage_pct")
+    worst_slip = summary.get("worst_slippage_pct")
+
+    ss_col3.metric(
+        "Avg Slippage",
+        f"{avg_slip * 100:.4f}%" if avg_slip is not None else "N/A"
+    )
+
+    ss_col4.metric(
+        "Worst Slippage",
+        f"{worst_slip * 100:.4f}%" if worst_slip is not None else "N/A"
+    )
+else:
+    st.info(summary.get("message", "No slippage summary available yet."))
+
+st.subheader("Recent Fill Records")
+
+fill_limit = st.number_input(
+    "Fill Rows to View",
+    min_value=10,
+    max_value=1000,
+    value=100,
+    step=10,
+    key="fill_slippage_rows_to_view"
+)
+
+fills_df = read_order_fills(limit=fill_limit)
+
+if fills_df.empty:
+    st.info("No fill records found yet.")
+else:
+    st.dataframe(fills_df, use_container_width=True)
+
+    fills_csv = fills_df.to_csv(index=False).encode("utf-8")
+
+    st.download_button(
+        label="Download Fill Records CSV",
+        data=fills_csv,
+        file_name="order_fills.csv",
+        mime="text/csv",
+        key="download_order_fills_csv"
+    )
+
+st.subheader("Manual Fill Record Test")
+
+st.write(
+    "Use this only for paper-trading review when you want to manually record a fill result."
+)
+
+mf_col1, mf_col2, mf_col3 = st.columns(3)
+
+with mf_col1:
+    manual_fill_ticker = st.selectbox(
+        "Manual Fill Ticker",
+        ["SPY", "QQQ", "AAPL", "MSFT"],
+        key="manual_fill_ticker"
+    )
+
+with mf_col2:
+    manual_fill_side = st.selectbox(
+        "Manual Fill Side",
+        ["BUY", "SELL"],
+        key="manual_fill_side"
+    )
+
+with mf_col3:
+    manual_fill_order_type = st.selectbox(
+        "Manual Fill Order Type",
+        ["LMT", "MKT"],
+        key="manual_fill_order_type"
+    )
+
+mf_col4, mf_col5, mf_col6 = st.columns(3)
+
+with mf_col4:
+    manual_reference_price = st.number_input(
+        "Manual Reference Price",
+        min_value=0.0,
+        value=500.00,
+        step=0.01,
+        format="%.2f",
+        key="manual_fill_reference_price"
+    )
+
+with mf_col5:
+    manual_fill_price = st.number_input(
+        "Manual Fill Price",
+        min_value=0.0,
+        value=500.00,
+        step=0.01,
+        format="%.2f",
+        key="manual_fill_price"
+    )
+
+with mf_col6:
+    manual_fill_quantity = st.number_input(
+        "Manual Fill Quantity",
+        min_value=0.0,
+        value=1.0,
+        step=1.0,
+        key="manual_fill_quantity"
+    )
+
+record_manual_fill_button = st.button(
+    "Record Manual Fill",
+    key="record_manual_fill_button"
+)
+
+if record_manual_fill_button:
+    try:
+        manual_fill_response = {
+            "order_id": f"manual-fill-{manual_fill_ticker}-{manual_fill_side}",
+            "ticker": manual_fill_ticker,
+            "side": manual_fill_side,
+            "order_type": manual_fill_order_type,
+            "limit_price": manual_reference_price,
+            "reference_price": manual_reference_price,
+            "fill_price": manual_fill_price,
+            "filled_quantity": manual_fill_quantity,
+            "order_status": "filled_manual"
+        }
+
+        fill_result = record_fill_from_broker_response(
+            broker_response=manual_fill_response,
+            order_key=manual_fill_response["order_id"]
+        )
+
+        st.success("Manual fill recorded.")
+        st.json(fill_result)
+
+        log_audit_event(
+            event_type="MANUAL_FILL_RECORDED",
+            ticker=manual_fill_ticker,
+            side=manual_fill_side,
+            quantity=manual_fill_quantity,
+            order_type=manual_fill_order_type,
+            limit_price=manual_reference_price,
+            broker_name="manual",
+            execution_mode=EXECUTION_MODE,
+            broker_status="filled_manual",
+            message="Manual fill recorded for slippage tracking.",
+            details=fill_result
+        )
+
+        st.rerun()
+
+    except Exception as e:
+        st.error("Could not record manual fill.")
+        st.exception(e)
+
+
 # ==============================
 # Real Price Validation
 # ==============================
@@ -4671,6 +4852,8 @@ table_to_view = st.selectbox(
         "system_events",
         "order_state_events",
         "order_current_state",
+        "order_fills",
+        "slippage_summary",
     ],
     key="database_table_to_view"
 )

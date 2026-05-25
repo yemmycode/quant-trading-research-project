@@ -461,6 +461,8 @@ def read_table(table_name, limit=100):
         "system_events",
         "order_state_events",
         "order_current_state",
+        "order_fills",
+        "slippage_summary",
     ]
 
     if table_name not in allowed_tables:
