@@ -1,3 +1,4 @@
+from price_validation import validate_order_price_from_proposal, get_price_validation_status
 from market_hours import get_market_hours_status, should_allow_market_order_workflow
 from broker_account_snapshot import get_broker_account_snapshot, get_snapshot_summary, snapshot_positions_to_dataframe
 from position_aware_execution import evaluate_position_aware_proposal, evaluate_position_aware_proposal_with_snapshot, get_positions_from_paper_broker, get_position_aware_status
@@ -3222,6 +3223,122 @@ else:
     st.info("No broker account snapshot captured yet.")
 
 
+
+
+# ==============================
+# Real Price Validation
+# ==============================
+
+st.markdown("---")
+st.header("Real Price Validation")
+st.write(
+    "Validate proposed order prices against the latest available reference price before broker workflow."
+)
+
+price_validation_status = get_price_validation_status()
+
+pv_col1, pv_col2 = st.columns(2)
+
+pv_col1.metric(
+    "Max BUY Premium",
+    f"{price_validation_status.get('default_max_buy_premium_pct', 0) * 100:.1f}%"
+)
+pv_col2.metric(
+    "Max SELL Discount",
+    f"{price_validation_status.get('default_max_sell_discount_pct', 0) * 100:.1f}%"
+)
+
+with st.expander("Price Validation Rules"):
+    for rule in price_validation_status.get("rules", []):
+        st.write(f"- {rule}")
+
+latest_proposal_for_price_check = st.session_state.get("latest_order_proposal")
+latest_signal_for_price_check = st.session_state.get("latest_live_signal")
+latest_snapshot_for_price_check = st.session_state.get("latest_broker_account_snapshot")
+
+if not latest_proposal_for_price_check:
+    st.info("No latest order proposal found. Create an order proposal first.")
+else:
+    st.subheader("Latest Proposal")
+    st.json(latest_proposal_for_price_check)
+
+    manual_reference_price = st.number_input(
+        "Optional Manual Reference Price",
+        min_value=0.0,
+        value=0.0,
+        step=0.01,
+        format="%.2f",
+        key="manual_reference_price_for_validation"
+    )
+
+    max_buy_premium = st.slider(
+        "Max BUY Premium %",
+        min_value=0.0,
+        max_value=10.0,
+        value=2.0,
+        step=0.5,
+        key="max_buy_premium_price_validation"
+    ) / 100.0
+
+    max_sell_discount = st.slider(
+        "Max SELL Discount %",
+        min_value=0.0,
+        max_value=10.0,
+        value=2.0,
+        step=0.5,
+        key="max_sell_discount_price_validation"
+    ) / 100.0
+
+    run_price_validation_button = st.button(
+        "Run Price Validation",
+        key="run_price_validation_button"
+    )
+
+    if run_price_validation_button:
+        try:
+            price_validation_result = validate_order_price_from_proposal(
+                proposal=latest_proposal_for_price_check,
+                signal=latest_signal_for_price_check,
+                account_snapshot=latest_snapshot_for_price_check,
+                manual_reference_price=manual_reference_price if manual_reference_price > 0 else None,
+                max_buy_premium_pct=max_buy_premium,
+                max_sell_discount_pct=max_sell_discount
+            )
+
+            st.session_state["latest_price_validation_result"] = price_validation_result
+
+            if price_validation_result.get("allowed"):
+                st.success("Price validation passed.")
+            else:
+                st.error("Price validation blocked this proposal.")
+
+            if price_validation_result.get("blockers"):
+                st.error(price_validation_result.get("blockers"))
+
+            if price_validation_result.get("warnings"):
+                st.warning(price_validation_result.get("warnings"))
+
+            with st.expander("Full Price Validation Result"):
+                st.json(price_validation_result)
+
+            log_audit_event(
+                event_type="PRICE_VALIDATION_COMPLETED",
+                ticker=price_validation_result.get("ticker"),
+                side=price_validation_result.get("side"),
+                order_type=price_validation_result.get("order_type"),
+                limit_price=price_validation_result.get("limit_price"),
+                broker_name="ibkr",
+                execution_mode=EXECUTION_MODE,
+                broker_status="not_submitted",
+                message="Price validation completed.",
+                details=price_validation_result
+            )
+
+        except Exception as e:
+            st.error("Price validation failed.")
+            st.exception(e)
+
+
 # ==============================
 # Position-Aware Signal Execution
 # ==============================
@@ -4009,6 +4126,48 @@ if submit_broker_order:
                 broker_status="blocked",
                 message="Dashboard IBKR paper order blocked by market hours awareness.",
                 details=market_workflow_result
+            )
+
+
+        latest_signal_for_manual_price_check = st.session_state.get("latest_live_signal")
+        latest_snapshot_for_manual_price_check = st.session_state.get("latest_broker_account_snapshot")
+
+        price_validation_result = validate_order_price_from_proposal(
+            proposal={
+                "ticker": broker_ticket_ticker,
+                "side": broker_ticket_side,
+                "quantity": broker_ticket_quantity,
+                "order_type": broker_ticket_order_type,
+                "limit_price": broker_ticket_limit_price,
+                "actionable": True,
+                "proposal_status": "manual_ticket",
+                "strategy_label": "manual_broker_ticket"
+            },
+            signal=latest_signal_for_manual_price_check,
+            account_snapshot=latest_snapshot_for_manual_price_check,
+            manual_reference_price=None,
+            max_buy_premium_pct=0.02,
+            max_sell_discount_pct=0.02
+        )
+
+        if not price_validation_result.get("allowed"):
+            st.error("Order blocked by Real Price Validation.")
+            st.json(price_validation_result)
+
+            log_audit_event(
+                event_type="DASHBOARD_ORDER_BLOCKED_PRICE_VALIDATION",
+                ticker=broker_ticket_ticker,
+                side=broker_ticket_side,
+                quantity=broker_ticket_quantity,
+                order_type=broker_ticket_order_type,
+                limit_price=broker_ticket_limit_price,
+                risk_approved=True,
+                manual_confirmation=manual_broker_confirmation,
+                broker_name="ibkr",
+                execution_mode=EXECUTION_MODE,
+                broker_status="blocked",
+                message="Dashboard IBKR paper order blocked by price validation.",
+                details=price_validation_result
             )
 
         else:
