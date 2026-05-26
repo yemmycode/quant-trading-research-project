@@ -1,3 +1,4 @@
+from error_notifier import notify_error, notify_message, read_error_notifications, mark_error_resolved, summarize_errors, get_error_notifier_status
 from fill_slippage_tracker import read_order_fills, summarize_slippage, get_fill_slippage_status, record_fill_from_broker_response
 from price_validation import validate_order_price_from_proposal, get_price_validation_status
 from market_hours import get_market_hours_status, should_allow_market_order_workflow
@@ -4854,6 +4855,7 @@ table_to_view = st.selectbox(
         "order_current_state",
         "order_fills",
         "slippage_summary",
+        "error_notifications",
     ],
     key="database_table_to_view"
 )
@@ -4894,6 +4896,161 @@ if view_table_button:
     except Exception as e:
         st.error("Could not read database table.")
         st.exception(e)
+
+
+
+
+# ==============================
+# Error Notification System
+# ==============================
+
+st.markdown("---")
+st.header("Error Notification System")
+st.write(
+    "Review system errors, warnings, critical events, and resolved notifications."
+)
+
+error_status = get_error_notifier_status()
+error_summary = error_status.get("summary", {})
+
+err_col1, err_col2, err_col3, err_col4 = st.columns(4)
+
+err_col1.metric("Total Notifications", error_summary.get("total_errors", 0))
+err_col2.metric("Unresolved", error_summary.get("unresolved_errors", 0))
+err_col3.metric("Critical", error_summary.get("critical_errors", 0))
+err_col4.metric("Checked At", error_status.get("checked_at"))
+
+if error_summary.get("critical_errors", 0) > 0:
+    st.error("Critical notifications exist. Review before broker testing.")
+elif error_summary.get("unresolved_errors", 0) > 0:
+    st.warning("Unresolved notifications exist. Review before continuing.")
+else:
+    st.success("No unresolved error notifications found.")
+
+with st.expander("Error Summary"):
+    st.json(error_summary)
+
+st.subheader("Create Manual Notification")
+
+manual_err_col1, manual_err_col2 = st.columns(2)
+
+with manual_err_col1:
+    manual_notification_component = st.text_input(
+        "Component",
+        value="manual_dashboard_note",
+        key="manual_notification_component"
+    )
+
+with manual_err_col2:
+    manual_notification_severity = st.selectbox(
+        "Severity",
+        ["INFO", "WARNING", "ERROR", "CRITICAL"],
+        key="manual_notification_severity"
+    )
+
+manual_notification_message = st.text_area(
+    "Notification Message",
+    value="",
+    key="manual_notification_message"
+)
+
+create_manual_notification_button = st.button(
+    "Create Manual Notification",
+    key="create_manual_notification_button"
+)
+
+if create_manual_notification_button:
+    if not manual_notification_message.strip():
+        st.error("Notification message cannot be empty.")
+    else:
+        result = notify_message(
+            component=manual_notification_component,
+            message=manual_notification_message,
+            severity=manual_notification_severity,
+            context={"source": "streamlit_dashboard"}
+        )
+
+        st.success("Manual notification recorded.")
+        st.json(result)
+        st.rerun()
+
+st.subheader("Notification Records")
+
+unresolved_only = st.checkbox(
+    "Show unresolved only",
+    value=False,
+    key="show_unresolved_notifications_only"
+)
+
+severity_filter = st.selectbox(
+    "Severity Filter",
+    ["", "INFO", "WARNING", "ERROR", "CRITICAL"],
+    key="error_notification_severity_filter"
+)
+
+notification_limit = st.number_input(
+    "Notifications to View",
+    min_value=10,
+    max_value=1000,
+    value=100,
+    step=10,
+    key="error_notification_limit"
+)
+
+notifications_df = read_error_notifications(
+    limit=notification_limit,
+    unresolved_only=unresolved_only,
+    severity=severity_filter if severity_filter else None
+)
+
+if notifications_df.empty:
+    st.info("No notifications found for selected filters.")
+else:
+    st.dataframe(notifications_df, use_container_width=True)
+
+    csv_data = notifications_df.to_csv(index=False).encode("utf-8")
+
+    st.download_button(
+        label="Download Error Notifications CSV",
+        data=csv_data,
+        file_name="error_notifications.csv",
+        mime="text/csv",
+        key="download_error_notifications_csv"
+    )
+
+st.subheader("Mark Notification as Resolved")
+
+resolve_error_id = st.number_input(
+    "Notification ID to Resolve",
+    min_value=1,
+    value=1,
+    step=1,
+    key="resolve_error_notification_id"
+)
+
+resolution_note = st.text_area(
+    "Resolution Note",
+    value="Resolved after review.",
+    key="resolution_note"
+)
+
+resolve_notification_button = st.button(
+    "Mark Notification Resolved",
+    key="mark_notification_resolved_button"
+)
+
+if resolve_notification_button:
+    resolve_result = mark_error_resolved(
+        error_id=resolve_error_id,
+        resolution_note=resolution_note
+    )
+
+    if resolve_result.get("updated"):
+        st.success("Notification marked as resolved.")
+        st.json(resolve_result)
+        st.rerun()
+    else:
+        st.warning("No notification was updated. Check the notification ID.")
 
 
 # ==============================

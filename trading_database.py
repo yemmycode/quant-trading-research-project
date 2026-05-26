@@ -463,6 +463,7 @@ def read_table(table_name, limit=100):
         "order_current_state",
         "order_fills",
         "slippage_summary",
+        "error_notifications",
     ]
 
     if table_name not in allowed_tables:

@@ -524,3 +524,18 @@
 - [ ] Syntax checks passed
 - [ ] No broker order submitted
 - [ ] No live trading enabled
+
+## Lesson 105 Error Notification System
+
+- [ ] error_notifier.py created
+- [ ] test_error_notifier.py created
+- [ ] Error notification test executed
+- [ ] error_notifications table created
+- [ ] Error Notification System added to Streamlit
+- [ ] Manual notification creation added
+- [ ] Notification resolution added
+- [ ] SQLite dashboard updated with error_notifications table
+- [ ] system_health.py updated
+- [ ] Syntax checks passed
+- [ ] No broker order submitted
+- [ ] No live trading enabled
