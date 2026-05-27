@@ -616,3 +616,17 @@
 - [ ] Syntax checks passed
 - [ ] No broker order submitted
 - [ ] No live trading enabled
+
+## Lesson C5 End-to-End Trading Control Center Dry Run
+
+- [ ] control_center_dry_run.py created
+- [ ] test_control_center_dry_run.py created
+- [ ] trading_control_center_dry_runs table created
+- [ ] Dry run records saved to SQLite
+- [ ] Dry Run panel added to Streamlit
+- [ ] SQLite viewer updated with dry run table
+- [ ] system_health.py updated
+- [ ] Syntax checks passed
+- [ ] End-to-end dry run test executed
+- [ ] No broker order submitted
+- [ ] No live trading enabled

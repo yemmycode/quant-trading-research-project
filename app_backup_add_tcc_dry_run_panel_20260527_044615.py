@@ -1,4 +1,3 @@
-from control_center_dry_run import run_control_center_dry_run, read_control_center_dry_runs, summarize_control_center_dry_runs
 from dashboard_structure import get_dashboard_structure, get_dashboard_cleanup_rules
 from trading_database import read_trading_control_center_runs, summarize_trading_control_center_runs
 from trading_control_center import run_trading_control_center_check, get_control_center_step_summary
@@ -317,102 +316,6 @@ if "latest_trading_control_center_result" in st.session_state:
 
 
 
-
-
-
-
-# ==============================
-# Trading Control Center Dry Run
-# ==============================
-
-st.markdown("---")
-st.subheader("Trading Control Center Dry Run")
-
-st.write(
-    "Run the full consolidated workflow as a dry run. "
-    "This records whether the system would be ready for manual paper review, but it never submits an order."
-)
-
-run_tcc_dry_run_button = st.button(
-    "Run End-to-End Dry Run",
-    key="run_tcc_end_to_end_dry_run"
-)
-
-if run_tcc_dry_run_button:
-    try:
-        dry_run_result = run_control_center_dry_run(
-            ticker=tcc_ticker,
-            strategy_name=tcc_strategy,
-            short_window=tcc_short_window,
-            long_window=tcc_long_window,
-            quantity=tcc_quantity,
-            order_type=tcc_order_type,
-            limit_price=tcc_limit_price if tcc_limit_price > 0 else None,
-            paper_broker=st.session_state.get("paper_broker"),
-            allow_after_hours=tcc_allow_after_hours,
-            allow_short_selling=False,
-            allow_add_to_existing=False,
-            manual_reference_price=tcc_manual_reference_price if tcc_manual_reference_price > 0 else None,
-        )
-
-        st.session_state["latest_tcc_dry_run_result"] = dry_run_result
-
-        record = dry_run_result.get("dry_run_record", {})
-
-        if record.get("would_submit_to_broker"):
-            st.success(record.get("message"))
-        else:
-            st.warning(record.get("message"))
-
-        st.json(record)
-
-    except Exception as e:
-        st.error("Trading Control Center dry run failed.")
-        st.exception(e)
-
-try:
-    dry_run_summary = summarize_control_center_dry_runs(limit=500)
-
-    dry_col1, dry_col2, dry_col3, dry_col4 = st.columns(4)
-
-    dry_col1.metric("Total Dry Runs", dry_run_summary.get("total_dry_runs", 0))
-    dry_col2.metric("Ready Dry Runs", dry_run_summary.get("ready_dry_runs", 0))
-    dry_col3.metric("Blocked Dry Runs", dry_run_summary.get("blocked_dry_runs", 0))
-    dry_col4.metric(
-        "Ready Rate",
-        f"{dry_run_summary.get('ready_rate', 0) * 100:.1f}%"
-    )
-
-    with st.expander("Recent Dry Runs"):
-        dry_run_limit = st.number_input(
-            "Dry Runs to View",
-            min_value=5,
-            max_value=500,
-            value=50,
-            step=5,
-            key="tcc_dry_run_limit"
-        )
-
-        dry_runs_df = read_control_center_dry_runs(limit=dry_run_limit)
-
-        if dry_runs_df.empty:
-            st.info("No dry runs recorded yet.")
-        else:
-            st.dataframe(dry_runs_df, use_container_width=True)
-
-            dry_csv = dry_runs_df.to_csv(index=False).encode("utf-8")
-
-            st.download_button(
-                label="Download Dry Runs CSV",
-                data=dry_csv,
-                file_name="trading_control_center_dry_runs.csv",
-                mime="text/csv",
-                key="download_tcc_dry_runs_csv"
-            )
-
-except Exception as e:
-    st.warning("Could not load dry run summary.")
-    st.caption(str(e))
 
 
 # ==============================
