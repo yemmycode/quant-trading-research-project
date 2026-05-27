@@ -1,0 +1,147 @@
+line_no,section_line,level
+152,"st.title(""Quant Trading Research Dashboard"")",title
+159,"st.header(""Trading Control Center"")",header
+285,"st.subheader(""Trading Control Center Decision"")",subheader
+299,"st.subheader(""Blockers"")",subheader
+304,"st.subheader(""Warnings"")",subheader
+308,"st.subheader(""Workflow Step Summary"")",subheader
+323,"st.subheader(""Trading Control Center History"")",subheader
+383,"st.subheader(""System Mode"")",subheader
+398,"st.subheader(""Broker Readiness"")",subheader
+404,"st.subheader(""Persistent Emergency Stop"")",subheader
+743,"st.subheader(""Performance Summary"")",subheader
+779,"st.subheader(""Equity Curve"")",subheader
+782,"st.subheader(""Drawdown Chart"")",subheader
+786,"st.subheader(""RSI Indicator"")",subheader
+793,"st.subheader(""Trade Log"")",subheader
+818,"st.subheader(""Download Strategy Report"")",subheader
+897,"st.header(""Paper Trading Mode"")",header
+928,"st.subheader(""Latest Paper Trading Status"")",subheader
+945,"st.subheader(""Paper Trading Equity Curve"")",subheader
+948,"st.subheader(""Paper Trading Trade Log"")",subheader
+964,"st.header(""Paper Trading History"")",header
+991,"st.header(""Emergency Stop Control"")",header
+1022,"st.header(""Strategy Comparison Dashboard"")",header
+1239,"st.subheader(""Strategy Comparison Table"")",subheader
+1271,"st.subheader(""Strategy Ranking"")",subheader
+1297,"st.subheader(""Equity Curve Comparison"")",subheader
+1313,"st.subheader(""Drawdown Comparison"")",subheader
+1348,"st.header(""Parameter Optimization Dashboard"")",header
+1661,"st.subheader(""Optimization Results"")",subheader
+1692,"st.subheader(""Best Parameter Setup"")",subheader
+1718,"st.subheader(""Top 5 Equity Curve Comparison"")",subheader
+1738,"st.subheader(""Top 5 Drawdown Comparison"")",subheader
+1779,"st.header(""30-Day IBKR Paper Trading Test"")",header
+1801,"st.subheader(""Log Paper Test Event"")",subheader
+1960,"st.subheader(""Latest Paper Test Log"")",subheader
+1987,"st.header(""Daily Paper Trading Report"")",header
+2040,"st.subheader(""Event Counts"")",subheader
+2043,"st.subheader(""Signal Counts"")",subheader
+2046,"st.subheader(""Risk Status Counts"")",subheader
+2049,"st.subheader(""Broker Order Status Counts"")",subheader
+2052,"st.subheader(""Readiness Status Counts"")",subheader
+2055,"st.subheader(""Latest Notes"")",subheader
+2117,"st.header(""Weekly Paper Trading Review"")",header
+2171,"st.subheader(""Recommendation"")",subheader
+2182,"st.subheader(""Test Days Included"")",subheader
+2185,"st.subheader(""Event Counts"")",subheader
+2188,"st.subheader(""Signal Counts"")",subheader
+2191,"st.subheader(""Risk Status Counts"")",subheader
+2194,"st.subheader(""Broker Order Status Counts"")",subheader
+2197,"st.subheader(""Readiness Status Counts"")",subheader
+2200,"st.subheader(""Important Notes"")",subheader
+2264,"st.header(""Live Trading Readiness Checklist"")",header
+2290,"st.subheader(""Checklist Items"")",subheader
+2327,"st.subheader(""Live Readiness Final Warning"")",subheader
+2350,"st.header(""Live Trading Warning Screen"")",header
+2366,"st.subheader(""Live Trading Risk Statements"")",subheader
+2440,"st.header(""Live Mode Lock"")",header
+2462,"st.subheader(""Live Mode Lock Message"")",subheader
+2465,"st.subheader(""Failed Checks"")",subheader
+2481,"st.subheader(""Live Mode Lock Guidance"")",subheader
+2496,"st.header(""Live Order Dry Run Mode"")",header
+2670,"st.subheader(""Dry Run Recommendation"")",subheader
+2673,"st.subheader(""Dry Run Blockers"")",subheader
+2708,"st.subheader(""Latest Live Order Dry Run Summary"")",subheader
+2728,"st.header(""Environment Reset Checklist"")",header
+2754,"st.subheader(""Reset Checklist Items"")",subheader
+2822,"st.subheader(""Manual Reset Guidance"")",subheader
+2836,"st.header(""Broker Environment Safety Panel"")",header
+2855,"st.subheader(""Environment Recommendation"")",subheader
+2862,"st.subheader(""Warnings"")",subheader
+2866,"st.subheader(""Blockers"")",subheader
+2885,"st.header(""Market Hours Awareness"")",header
+2939,"st.header(""Live Broker Signal Generator"")",header
+3007,"st.subheader(""Strategy Parameters"")",subheader
+3171,"st.subheader(""Latest Signal Result"")",subheader
+3196,"st.subheader(""Signal Strategy Summary"")",subheader
+3223,"st.header(""Signal to Order Proposal"")",header
+3234,"st.subheader(""Latest Signal Available"")",subheader
+3347,"st.subheader(""Latest Order Proposal"")",subheader
+3362,"st.subheader(""Generated Order Request"")",subheader
+3388,"st.header(""Broker Account Snapshot"")",header
+3429,"st.subheader(""Snapshot Positions"")",subheader
+3453,"st.header(""Fill and Slippage Tracking"")",header
+3465,"st.subheader(""Slippage Summary"")",subheader
+3490,"st.subheader(""Recent Fill Records"")",subheader
+3518,"st.subheader(""Manual Fill Record Test"")",subheader
+3631,"st.header(""Real Price Validation"")",header
+3660,"st.subheader(""Latest Proposal"")",subheader
+3745,"st.header(""Position-Aware Signal Execution"")",header
+3766,"st.subheader(""Latest Proposal"")",subheader
+3780,"st.subheader(""Current Paper Positions"")",subheader
+3861,"st.header(""Duplicate Order Guard"")",header
+3880,"st.subheader(""Active Orders by Ticker"")",subheader
+3904,"st.subheader(""Check Latest Order Proposal for Duplicates"")",subheader
+3969,"st.header(""Signal Review Page"")",header
+3982,"st.subheader(""Latest Signal Review"")",subheader
+4019,"st.subheader(""Emergency Stop Review"")",subheader
+4032,"st.subheader(""Order Proposal Review"")",subheader
+4073,"st.subheader(""Pre-Trade Recommendation"")",subheader
+4123,"st.header(""Broker Manual Approval Ticket"")",header
+4260,"st.subheader(""Order Preview"")",subheader
+4332,"st.subheader(""Risk Check Result"")",subheader
+4342,"st.subheader(""Submit IBKR Paper Order"")",subheader
+4669,"st.header(""IBKR Paper Order Management"")",header
+4711,"st.subheader(""Open IBKR Paper Orders"")",subheader
+4809,"st.header(""Secure Broker Architecture Plan"")",header
+4825,"st.subheader(""Recommended Use Right Now"")",subheader
+4828,"st.subheader(""Architecture Modes"")",subheader
+4835,"st.subheader(""Required Next Components"")",subheader
+4840,"st.subheader(""Currently Prohibited"")",subheader
+4854,"st.header(""Deployment Health Check"")",header
+4883,"st.subheader(""Runtime Details"")",subheader
+4887,"st.subheader(""IBKR Localhost Availability"")",subheader
+4906,"st.subheader(""Feature Availability Matrix"")",subheader
+4939,"st.header(""Unified Order State Manager"")",header
+4966,"st.subheader(""Current Order States"")",subheader
+4984,"st.subheader(""Order State Events"")",subheader
+5027,"st.header(""SQLite Trading Database"")",header
+5050,"st.subheader(""Database Tables"")",subheader
+5059,"st.subheader(""View Database Table"")",subheader
+5128,"st.header(""Automated Test Runner"")",header
+5159,"st.subheader(""Available Safe Tests"")",subheader
+5234,"st.subheader(""Latest Test Runner Output"")",subheader
+5254,"st.subheader(""Recent Saved Test Results"")",subheader
+5288,"st.header(""Error Notification System"")",header
+5313,"st.subheader(""Create Manual Notification"")",subheader
+5357,"st.subheader(""Notification Records"")",subheader
+5401,"st.subheader(""Mark Notification as Resolved"")",subheader
+5441,"st.header(""System Health Check Dashboard"")",header
+5472,"st.subheader(""Health Summary"")",subheader
+5475,"st.subheader(""Required Files"")",subheader
+5478,"st.subheader(""Required Folders"")",subheader
+5481,"st.subheader(""Module Import Checks"")",subheader
+5495,"st.subheader(""Config Safety"")",subheader
+5506,"st.subheader(""Safety Systems"")",subheader
+5523,"st.subheader(""Local Logs"")",subheader
+5540,"st.header(""Portfolio Overview"")",header
+5585,"st.subheader(""Open Paper Positions"")",subheader
+5593,"st.subheader(""Portfolio Allocation"")",subheader
+5610,"st.subheader(""Recent Paper Orders"")",subheader
+5635,"st.subheader(""Portfolio Controls"")",subheader
+5656,"st.header(""Manual Confirmation Order Ticket"")",header
+5701,"st.subheader(""Paper Broker Account"")",subheader
+5725,"st.subheader(""Order Preview"")",subheader
+5789,"st.subheader(""Recent Order Log"")",subheader
+5807,"st.header(""Database Viewer"")",header

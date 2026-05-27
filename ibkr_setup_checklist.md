@@ -602,3 +602,17 @@
 - [ ] Syntax checks passed
 - [ ] No broker order submitted
 - [ ] No live trading enabled
+
+## Lesson C4 Dashboard Cleanup and Structure Guide
+
+- [ ] dashboard_structure.py created
+- [ ] dashboard current sections scanned
+- [ ] dashboard_current_sections.csv created
+- [ ] dashboard_cleanup_plan.md created
+- [ ] Dashboard Structure Guide added to Streamlit
+- [ ] Target dashboard groups defined
+- [ ] Dashboard cleanup rules defined
+- [ ] system_health.py updated
+- [ ] Syntax checks passed
+- [ ] No broker order submitted
+- [ ] No live trading enabled

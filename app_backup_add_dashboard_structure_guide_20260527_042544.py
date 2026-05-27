@@ -1,4 +1,3 @@
-from dashboard_structure import get_dashboard_structure, get_dashboard_cleanup_rules
 from trading_database import read_trading_control_center_runs, summarize_trading_control_center_runs
 from trading_control_center import run_trading_control_center_check, get_control_center_step_summary
 from test_runner import list_available_tests, run_single_test_script, run_selected_tests, run_safe_test_suite, read_test_results, summarize_test_results, get_test_runner_status
@@ -314,38 +313,6 @@ if "latest_trading_control_center_result" in st.session_state:
     with st.expander("Full Trading Control Center Result"):
         st.json(tcc_result)
 
-
-
-
-
-# ==============================
-# Dashboard Structure Guide
-# ==============================
-
-st.markdown("---")
-st.subheader("Dashboard Structure Guide")
-
-try:
-    dashboard_structure = get_dashboard_structure()
-    cleanup_rules = get_dashboard_cleanup_rules()
-
-    st.info(dashboard_structure.get("recommendation"))
-
-    with st.expander("Target Dashboard Structure"):
-        structure_rows = dashboard_structure.get("rows", [])
-
-        if structure_rows:
-            st.dataframe(pd.DataFrame(structure_rows), use_container_width=True)
-        else:
-            st.write("No dashboard structure rows found.")
-
-    with st.expander("Dashboard Cleanup Rules"):
-        for rule in cleanup_rules.get("rules", []):
-            st.write(f"- {rule}")
-
-except Exception as e:
-    st.warning("Could not load dashboard structure guide.")
-    st.caption(str(e))
 
 
 # ==============================
