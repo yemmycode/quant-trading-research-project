@@ -587,3 +587,18 @@
 - [ ] Workflow step summary displayed
 - [ ] No broker order submitted
 - [ ] No live trading enabled
+
+## Lesson C3 Trading Control Center Database Logging
+
+- [ ] trading_control_center_runs table created
+- [ ] insert_trading_control_center_run added
+- [ ] read_trading_control_center_runs added
+- [ ] summarize_trading_control_center_runs added
+- [ ] Trading Control Center now logs each run to SQLite
+- [ ] test_trading_control_center_logging.py created
+- [ ] Trading Control Center logging test executed
+- [ ] Trading Control Center History added to Streamlit
+- [ ] SQLite viewer updated with trading_control_center_runs
+- [ ] Syntax checks passed
+- [ ] No broker order submitted
+- [ ] No live trading enabled

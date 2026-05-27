@@ -21,7 +21,6 @@ from price_validation import validate_order_price_from_proposal
 from risk_manager import create_risk_manager_from_config
 from safety_manager import read_emergency_stop_state
 from broker_environment import get_environment_recommendation
-from trading_database import insert_trading_control_center_run
 
 
 def run_trading_control_center_check(
@@ -309,14 +308,6 @@ def finalize_control_center_result(result):
             "Pre-trade checks passed. This does not submit an order. "
             "Manual confirmation and paper-only execution should still be required."
         )
-
-    try:
-        run_id = insert_trading_control_center_run(result)
-        result["database_logged"] = True
-        result["database_run_id"] = run_id
-    except Exception as db_error:
-        result["database_logged"] = False
-        result["database_error"] = f"{type(db_error).__name__}: {db_error}"
 
     return result
 

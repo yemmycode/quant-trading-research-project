@@ -1,4 +1,3 @@
-from trading_database import read_trading_control_center_runs, summarize_trading_control_center_runs
 from trading_control_center import run_trading_control_center_check, get_control_center_step_summary
 from test_runner import list_available_tests, run_single_test_script, run_selected_tests, run_safe_test_suite, read_test_results, summarize_test_results, get_test_runner_status
 from error_notifier import notify_error, notify_message, read_error_notifications, mark_error_resolved, summarize_errors, get_error_notifier_status
@@ -312,59 +311,6 @@ if "latest_trading_control_center_result" in st.session_state:
 
     with st.expander("Full Trading Control Center Result"):
         st.json(tcc_result)
-
-
-
-# ==============================
-# Trading Control Center History
-# ==============================
-
-st.markdown("---")
-st.subheader("Trading Control Center History")
-
-try:
-    tcc_history_summary = summarize_trading_control_center_runs(limit=500)
-
-    hist_col1, hist_col2, hist_col3, hist_col4 = st.columns(4)
-
-    hist_col1.metric("Total Runs", tcc_history_summary.get("total_runs", 0))
-    hist_col2.metric("Ready", tcc_history_summary.get("ready_count", 0))
-    hist_col3.metric("Blocked", tcc_history_summary.get("blocked_count", 0))
-    hist_col4.metric(
-        "Ready Rate",
-        f"{tcc_history_summary.get('ready_rate', 0) * 100:.1f}%"
-    )
-
-    with st.expander("Recent Trading Control Center Runs"):
-        tcc_history_limit = st.number_input(
-            "Runs to View",
-            min_value=5,
-            max_value=500,
-            value=50,
-            step=5,
-            key="tcc_history_limit"
-        )
-
-        tcc_runs_df = read_trading_control_center_runs(limit=tcc_history_limit)
-
-        if tcc_runs_df.empty:
-            st.info("No Trading Control Center runs saved yet.")
-        else:
-            st.dataframe(tcc_runs_df, use_container_width=True)
-
-            tcc_runs_csv = tcc_runs_df.to_csv(index=False).encode("utf-8")
-
-            st.download_button(
-                label="Download Trading Control Center Runs CSV",
-                data=tcc_runs_csv,
-                file_name="trading_control_center_runs.csv",
-                mime="text/csv",
-                key="download_tcc_runs_csv"
-            )
-
-except Exception as e:
-    st.warning("Could not load Trading Control Center history.")
-    st.caption(str(e))
 
 
 with logout_col2:
@@ -5073,7 +5019,6 @@ table_to_view = st.selectbox(
         "slippage_summary",
         "error_notifications",
         "test_run_results",
-        "trading_control_center_runs",
     ],
     key="database_table_to_view"
 )
