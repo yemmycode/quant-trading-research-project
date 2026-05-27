@@ -539,3 +539,18 @@
 - [ ] Syntax checks passed
 - [ ] No broker order submitted
 - [ ] No live trading enabled
+
+## Lesson 106 Automated Test Runner Dashboard
+
+- [ ] test_runner.py created
+- [ ] test_test_runner.py created
+- [ ] Test runner test executed
+- [ ] test_run_results table created
+- [ ] Automated Test Runner added to Streamlit
+- [ ] Safe test selection added
+- [ ] Full safe suite runner added
+- [ ] SQLite dashboard updated with test_run_results table
+- [ ] system_health.py updated
+- [ ] Syntax checks passed
+- [ ] No broker order submitted
+- [ ] No live trading enabled

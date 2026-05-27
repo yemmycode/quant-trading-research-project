@@ -1,3 +1,4 @@
+from test_runner import list_available_tests, run_single_test_script, run_selected_tests, run_safe_test_suite, read_test_results, summarize_test_results, get_test_runner_status
 from error_notifier import notify_error, notify_message, read_error_notifications, mark_error_resolved, summarize_errors, get_error_notifier_status
 from fill_slippage_tracker import read_order_fills, summarize_slippage, get_fill_slippage_status, record_fill_from_broker_response
 from price_validation import validate_order_price_from_proposal, get_price_validation_status
@@ -4856,6 +4857,7 @@ table_to_view = st.selectbox(
         "order_fills",
         "slippage_summary",
         "error_notifications",
+        "test_run_results",
     ],
     key="database_table_to_view"
 )
@@ -4898,6 +4900,163 @@ if view_table_button:
         st.exception(e)
 
 
+
+
+
+
+# ==============================
+# Automated Test Runner
+# ==============================
+
+st.markdown("---")
+st.header("Automated Test Runner")
+st.write(
+    "Run selected safe local test scripts and review pass/fail results. "
+    "Broker connection tests are excluded by default."
+)
+
+test_runner_status = get_test_runner_status()
+test_summary = test_runner_status.get("summary", {})
+
+tr_col1, tr_col2, tr_col3, tr_col4 = st.columns(4)
+
+tr_col1.metric("Safe Tests", test_runner_status.get("safe_tests_count"))
+tr_col2.metric("Latest Unique Tests", test_summary.get("latest_unique_tests", 0))
+tr_col3.metric("Latest Passed", test_summary.get("latest_passed", 0))
+tr_col4.metric(
+    "Latest Pass Rate",
+    f"{test_summary.get('latest_pass_rate', 0) * 100:.1f}%"
+)
+
+if test_summary.get("latest_failed", 0) > 0:
+    st.warning("Some latest test results failed. Review before broker testing.")
+elif test_summary.get("has_data"):
+    st.success("Latest recorded tests are passing.")
+else:
+    st.info("No test results recorded yet.")
+
+st.subheader("Available Safe Tests")
+
+available_tests = test_runner_status.get("available_safe_tests", [])
+available_df = pd.DataFrame(available_tests)
+
+if not available_df.empty:
+    st.dataframe(available_df, use_container_width=True)
+
+existing_safe_tests = [
+    row["test_script"]
+    for row in available_tests
+    if row.get("exists")
+]
+
+selected_tests = st.multiselect(
+    "Select Safe Tests to Run",
+    options=existing_safe_tests,
+    default=[],
+    key="selected_safe_tests_to_run"
+)
+
+test_timeout = st.number_input(
+    "Timeout per Test Script Seconds",
+    min_value=30,
+    max_value=600,
+    value=120,
+    step=30,
+    key="test_runner_timeout_seconds"
+)
+
+run_selected_tests_button = st.button(
+    "Run Selected Tests",
+    key="run_selected_tests_button"
+)
+
+if run_selected_tests_button:
+    if not selected_tests:
+        st.error("Please select at least one test script.")
+    else:
+        with st.spinner("Running selected tests..."):
+            results = run_selected_tests(
+                test_scripts=selected_tests,
+                timeout_seconds=test_timeout
+            )
+
+        st.session_state["latest_test_runner_results"] = results
+
+        passed_count = sum(1 for result in results if result.get("passed"))
+        failed_count = len(results) - passed_count
+
+        if failed_count == 0:
+            st.success(f"All selected tests passed: {passed_count}/{len(results)}")
+        else:
+            st.error(f"Some tests failed: {failed_count}/{len(results)}")
+
+run_safe_suite_button = st.button(
+    "Run Full Safe Test Suite",
+    key="run_full_safe_test_suite_button"
+)
+
+if run_safe_suite_button:
+    with st.spinner("Running full safe test suite..."):
+        results = run_safe_test_suite(timeout_seconds=test_timeout)
+
+    st.session_state["latest_test_runner_results"] = results
+
+    passed_count = sum(1 for result in results if result.get("passed"))
+    failed_count = len(results) - passed_count
+
+    if failed_count == 0:
+        st.success(f"Full safe test suite passed: {passed_count}/{len(results)}")
+    else:
+        st.error(f"Some safe tests failed: {failed_count}/{len(results)}")
+
+if "latest_test_runner_results" in st.session_state:
+    st.subheader("Latest Test Runner Output")
+
+    latest_results = st.session_state["latest_test_runner_results"]
+
+    results_df = pd.DataFrame([
+        {
+            "test_script": result.get("test_script"),
+            "passed": result.get("passed"),
+            "return_code": result.get("return_code"),
+            "duration_seconds": result.get("duration_seconds"),
+            "stderr_preview": str(result.get("stderr_text", ""))[:300],
+        }
+        for result in latest_results
+    ])
+
+    st.dataframe(results_df, use_container_width=True)
+
+    with st.expander("Full Latest Test Outputs"):
+        st.json(latest_results)
+
+st.subheader("Recent Saved Test Results")
+
+test_result_limit = st.number_input(
+    "Saved Test Results to View",
+    min_value=10,
+    max_value=1000,
+    value=100,
+    step=10,
+    key="saved_test_results_limit"
+)
+
+saved_results_df = read_test_results(limit=test_result_limit)
+
+if saved_results_df.empty:
+    st.info("No saved test results found.")
+else:
+    st.dataframe(saved_results_df, use_container_width=True)
+
+    test_csv = saved_results_df.to_csv(index=False).encode("utf-8")
+
+    st.download_button(
+        label="Download Test Results CSV",
+        data=test_csv,
+        file_name="test_run_results.csv",
+        mime="text/csv",
+        key="download_test_run_results_csv"
+    )
 
 
 # ==============================
