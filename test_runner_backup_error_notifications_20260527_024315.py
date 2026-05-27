@@ -15,8 +15,6 @@ import subprocess
 import sys
 import pandas as pd
 
-from error_notifier import notify_error, notify_message
-
 from trading_database import (
     initialize_trading_database,
     get_database_connection,
@@ -38,7 +36,6 @@ SAFE_TEST_SCRIPTS = [
     "test_price_validation.py",
     "test_fill_slippage_tracker.py",
     "test_error_notifier.py",
-    "test_failure_notification_dummy.py",
     "test_system_health.py",
     "test_deployment_health.py",
     "test_secure_broker_architecture.py",
@@ -189,16 +186,6 @@ def run_single_test_script(test_script, timeout_seconds=120):
         }
 
     save_test_result(result)
-
-    try:
-        notification_result = notify_test_result_if_failed(result)
-        result["error_notification"] = notification_result
-    except Exception as notification_error:
-        result["error_notification"] = {
-            "notification_created": False,
-            "reason": f"Could not create error notification: {type(notification_error).__name__}: {notification_error}"
-        }
-
     return result
 
 
@@ -372,53 +359,4 @@ def get_test_runner_status():
         "available_all_tests": available_all,
         "summary": summary,
         "purpose": "Run safe local test scripts and review pass/fail results.",
-    }
-
-
-def notify_test_result_if_failed(result):
-    """
-    Create an error notification when a test script fails.
-    """
-
-    if not isinstance(result, dict):
-        return {
-            "notification_created": False,
-            "reason": "Invalid test result object."
-        }
-
-    if result.get("passed"):
-        return {
-            "notification_created": False,
-            "reason": "Test passed. No error notification required."
-        }
-
-    test_script = result.get("test_script", "unknown_test")
-    stderr_text = result.get("stderr_text", "")
-    stdout_text = result.get("stdout_text", "")
-    return_code = result.get("return_code")
-
-    error_message = stderr_text or stdout_text or f"Test failed with return code: {return_code}"
-
-    notification = notify_error(
-        component=f"test_runner:{test_script}",
-        error={
-            "error_type": "TestFailure",
-            "error_message": error_message,
-            "traceback": stderr_text,
-        },
-        severity="ERROR",
-        context={
-            "test_script": test_script,
-            "test_group": result.get("test_group"),
-            "return_code": return_code,
-            "duration_seconds": result.get("duration_seconds"),
-            "stdout_preview": stdout_text[:1000],
-            "stderr_preview": stderr_text[:1000],
-        },
-        resolved=False
-    )
-
-    return {
-        "notification_created": True,
-        "notification": notification,
     }

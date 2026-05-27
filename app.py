@@ -4935,6 +4935,11 @@ elif test_summary.get("has_data"):
 else:
     st.info("No test results recorded yet.")
 
+st.warning(
+    "Note: test_failure_notification_dummy.py is intentionally designed to fail. "
+    "Use it only when testing error notification integration."
+)
+
 st.subheader("Available Safe Tests")
 
 available_tests = test_runner_status.get("available_safe_tests", [])

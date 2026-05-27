@@ -38,7 +38,6 @@ SAFE_TEST_SCRIPTS = [
     "test_price_validation.py",
     "test_fill_slippage_tracker.py",
     "test_error_notifier.py",
-    "test_failure_notification_dummy.py",
     "test_system_health.py",
     "test_deployment_health.py",
     "test_secure_broker_architecture.py",

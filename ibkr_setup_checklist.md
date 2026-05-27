@@ -554,3 +554,16 @@
 - [ ] Syntax checks passed
 - [ ] No broker order submitted
 - [ ] No live trading enabled
+
+## Lesson 107 Test Failure Error Notifications
+
+- [ ] test_runner.py updated to create error notifications on failed tests
+- [ ] test_failure_notification_dummy.py created
+- [ ] test_test_failure_notifications.py created
+- [ ] Dummy failure test executed through test runner
+- [ ] Failed test created error notification
+- [ ] Automated Test Runner dashboard warning added
+- [ ] Error Notification dashboard reviewed
+- [ ] Syntax checks passed
+- [ ] No broker order submitted
+- [ ] No live trading enabled
