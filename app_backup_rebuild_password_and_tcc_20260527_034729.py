@@ -113,7 +113,9 @@ def get_dashboard_password():
 # ==============================
 
 def check_dashboard_password():
-    """Check dashboard password before showing the app."""
+    """
+    Simple password gate for demo/private dashboard use.
+    """
 
     if "dashboard_authenticated" not in st.session_state:
         st.session_state.dashboard_authenticated = False
@@ -121,34 +123,7 @@ def check_dashboard_password():
     if st.session_state.dashboard_authenticated:
         return True
 
-    st.write("Enter the dashboard password to continue.")
-
-    password_input = st.text_input(
-        "Password",
-        type="password",
-        key="dashboard_password_input"
-    )
-
-    login_button = st.button("Login", key="dashboard_login_button")
-
-    if login_button:
-        if password_input.strip() == get_dashboard_password().strip():
-            st.session_state.dashboard_authenticated = True
-            st.success("Login successful. Reloading dashboard...")
-            st.rerun()
-        else:
-            st.error("Incorrect password.")
-
-    return False
-
-if not check_dashboard_password():
-    st.stop()
-
-
-logout_col1, logout_col2 = st.columns([5, 1])
-
-with logout_col1:
-    st.title("Quant Trading Research Dashboard")
+    st.title("Quant Trading Research Dashboard Login")
 
 # ==============================
 # Trading Control Center
@@ -265,6 +240,7 @@ if run_tcc_button:
 
         st.session_state["latest_trading_control_center_result"] = tcc_result
 
+        # Also expose important outputs for other dashboard sections.
         if isinstance(tcc_result.get("workflow_steps", {}).get("signal"), dict):
             st.session_state["latest_live_signal"] = tcc_result["workflow_steps"]["signal"]
 
@@ -312,6 +288,36 @@ if "latest_trading_control_center_result" in st.session_state:
     with st.expander("Full Trading Control Center Result"):
         st.json(tcc_result)
 
+
+
+    st.write("Enter the dashboard password to continue.")
+
+    password_input = st.text_input(
+        "Password",
+        type="password"
+    )
+
+    login_button = st.button("Login")
+
+    if login_button:
+        if password_input.strip() == get_dashboard_password().strip():
+            st.session_state.dashboard_authenticated = True
+            st.success("Login successful. Reloading dashboard...")
+            st.rerun()
+        else:
+            st.error("Incorrect password.")
+
+    return False
+
+
+if not check_dashboard_password():
+    st.stop()
+
+
+logout_col1, logout_col2 = st.columns([5, 1])
+
+with logout_col1:
+    st.title("Quant Trading Research Dashboard")
 
 with logout_col2:
     if st.button("Logout"):

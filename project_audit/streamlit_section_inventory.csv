@@ -1,0 +1,38 @@
+line_no,section_line,type
+125,"st.title(""Quant Trading Research Dashboard Login"")",header_or_title
+153,"st.title(""Quant Trading Research Dashboard"")",header_or_title
+682,"st.header(""Paper Trading Mode"")",header_or_title
+749,"st.header(""Paper Trading History"")",header_or_title
+776,"st.header(""Emergency Stop Control"")",header_or_title
+807,"st.header(""Strategy Comparison Dashboard"")",header_or_title
+1133,"st.header(""Parameter Optimization Dashboard"")",header_or_title
+1564,"st.header(""30-Day IBKR Paper Trading Test"")",header_or_title
+1772,"st.header(""Daily Paper Trading Report"")",header_or_title
+1902,"st.header(""Weekly Paper Trading Review"")",header_or_title
+2049,"st.header(""Live Trading Readiness Checklist"")",header_or_title
+2135,"st.header(""Live Trading Warning Screen"")",header_or_title
+2225,"st.header(""Live Mode Lock"")",header_or_title
+2281,"st.header(""Live Order Dry Run Mode"")",header_or_title
+2513,"st.header(""Environment Reset Checklist"")",header_or_title
+2621,"st.header(""Broker Environment Safety Panel"")",header_or_title
+2670,"st.header(""Market Hours Awareness"")",header_or_title
+2724,"st.header(""Live Broker Signal Generator"")",header_or_title
+3008,"st.header(""Signal to Order Proposal"")",header_or_title
+3173,"st.header(""Broker Account Snapshot"")",header_or_title
+3238,"st.header(""Fill and Slippage Tracking"")",header_or_title
+3416,"st.header(""Real Price Validation"")",header_or_title
+3530,"st.header(""Position-Aware Signal Execution"")",header_or_title
+3646,"st.header(""Duplicate Order Guard"")",header_or_title
+3754,"st.header(""Signal Review Page"")",header_or_title
+3908,"st.header(""Broker Manual Approval Ticket"")",header_or_title
+4454,"st.header(""IBKR Paper Order Management"")",header_or_title
+4594,"st.header(""Secure Broker Architecture Plan"")",header_or_title
+4639,"st.header(""Deployment Health Check"")",header_or_title
+4724,"st.header(""Unified Order State Manager"")",header_or_title
+4812,"st.header(""SQLite Trading Database"")",header_or_title
+4912,"st.header(""Automated Test Runner"")",header_or_title
+5072,"st.header(""Error Notification System"")",header_or_title
+5225,"st.header(""System Health Check Dashboard"")",header_or_title
+5324,"st.header(""Portfolio Overview"")",header_or_title
+5440,"st.header(""Manual Confirmation Order Ticket"")",header_or_title
+5591,"st.header(""Database Viewer"")",header_or_title

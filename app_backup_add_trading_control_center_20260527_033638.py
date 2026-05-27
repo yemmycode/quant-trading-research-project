@@ -1,4 +1,3 @@
-from trading_control_center import run_trading_control_center_check, get_control_center_step_summary
 from test_runner import list_available_tests, run_single_test_script, run_selected_tests, run_safe_test_suite, read_test_results, summarize_test_results, get_test_runner_status
 from error_notifier import notify_error, notify_message, read_error_notifications, mark_error_resolved, summarize_errors, get_error_notifier_status
 from fill_slippage_tracker import read_order_fills, summarize_slippage, get_fill_slippage_status, record_fill_from_broker_response
@@ -113,7 +112,9 @@ def get_dashboard_password():
 # ==============================
 
 def check_dashboard_password():
-    """Check dashboard password before showing the app."""
+    """
+    Simple password gate for demo/private dashboard use.
+    """
 
     if "dashboard_authenticated" not in st.session_state:
         st.session_state.dashboard_authenticated = False
@@ -121,15 +122,15 @@ def check_dashboard_password():
     if st.session_state.dashboard_authenticated:
         return True
 
+    st.title("Quant Trading Research Dashboard Login")
     st.write("Enter the dashboard password to continue.")
 
     password_input = st.text_input(
         "Password",
-        type="password",
-        key="dashboard_password_input"
+        type="password"
     )
 
-    login_button = st.button("Login", key="dashboard_login_button")
+    login_button = st.button("Login")
 
     if login_button:
         if password_input.strip() == get_dashboard_password().strip():
@@ -141,6 +142,7 @@ def check_dashboard_password():
 
     return False
 
+
 if not check_dashboard_password():
     st.stop()
 
@@ -149,169 +151,6 @@ logout_col1, logout_col2 = st.columns([5, 1])
 
 with logout_col1:
     st.title("Quant Trading Research Dashboard")
-
-# ==============================
-# Trading Control Center
-# ==============================
-
-st.markdown("---")
-st.header("Trading Control Center")
-st.write(
-    "This is the consolidated pre-trade workflow. It checks signal, proposal, account snapshot, "
-    "market hours, position rules, duplicate orders, price validation, and risk before any paper submission."
-)
-
-tcc_col1, tcc_col2, tcc_col3, tcc_col4 = st.columns(4)
-
-with tcc_col1:
-    tcc_ticker = st.selectbox(
-        "Ticker",
-        ["SPY", "QQQ", "AAPL", "MSFT"],
-        key="tcc_ticker"
-    )
-
-with tcc_col2:
-    tcc_strategy = st.selectbox(
-        "Strategy",
-        ["moving_average"],
-        key="tcc_strategy"
-    )
-
-with tcc_col3:
-    tcc_short_window = st.number_input(
-        "Short Window",
-        min_value=2,
-        max_value=100,
-        value=20,
-        step=1,
-        key="tcc_short_window"
-    )
-
-with tcc_col4:
-    tcc_long_window = st.number_input(
-        "Long Window",
-        min_value=5,
-        max_value=300,
-        value=50,
-        step=1,
-        key="tcc_long_window"
-    )
-
-tcc_col5, tcc_col6, tcc_col7, tcc_col8 = st.columns(4)
-
-with tcc_col5:
-    tcc_quantity = st.number_input(
-        "Quantity",
-        min_value=0.0,
-        value=1.0,
-        step=1.0,
-        key="tcc_quantity"
-    )
-
-with tcc_col6:
-    tcc_order_type = st.selectbox(
-        "Order Type",
-        ["LMT", "MKT"],
-        key="tcc_order_type"
-    )
-
-with tcc_col7:
-    tcc_limit_price = st.number_input(
-        "Limit Price",
-        min_value=0.0,
-        value=0.0,
-        step=0.01,
-        format="%.2f",
-        key="tcc_limit_price"
-    )
-
-with tcc_col8:
-    tcc_manual_reference_price = st.number_input(
-        "Manual Reference Price",
-        min_value=0.0,
-        value=0.0,
-        step=0.01,
-        format="%.2f",
-        key="tcc_manual_reference_price"
-    )
-
-tcc_allow_after_hours = st.checkbox(
-    "Allow after-hours workflow check",
-    value=False,
-    key="tcc_allow_after_hours"
-)
-
-run_tcc_button = st.button(
-    "Run Trading Control Center Check",
-    key="run_trading_control_center_check"
-)
-
-if run_tcc_button:
-    try:
-        tcc_result = run_trading_control_center_check(
-            ticker=tcc_ticker,
-            strategy_name=tcc_strategy,
-            short_window=tcc_short_window,
-            long_window=tcc_long_window,
-            quantity=tcc_quantity,
-            order_type=tcc_order_type,
-            limit_price=tcc_limit_price if tcc_limit_price > 0 else None,
-            paper_broker=st.session_state.get("paper_broker"),
-            allow_after_hours=tcc_allow_after_hours,
-            allow_short_selling=False,
-            allow_add_to_existing=False,
-            manual_reference_price=tcc_manual_reference_price if tcc_manual_reference_price > 0 else None,
-        )
-
-        st.session_state["latest_trading_control_center_result"] = tcc_result
-
-        if isinstance(tcc_result.get("workflow_steps", {}).get("signal"), dict):
-            st.session_state["latest_live_signal"] = tcc_result["workflow_steps"]["signal"]
-
-        if isinstance(tcc_result.get("workflow_steps", {}).get("order_proposal"), dict):
-            st.session_state["latest_order_proposal"] = tcc_result["workflow_steps"]["order_proposal"]
-
-        if isinstance(tcc_result.get("workflow_steps", {}).get("account_snapshot"), dict):
-            st.session_state["latest_broker_account_snapshot"] = tcc_result["workflow_steps"]["account_snapshot"]
-
-    except Exception as e:
-        st.error("Trading Control Center check failed.")
-        st.exception(e)
-
-if "latest_trading_control_center_result" in st.session_state:
-    tcc_result = st.session_state["latest_trading_control_center_result"]
-
-    st.subheader("Trading Control Center Decision")
-
-    decision_col1, decision_col2, decision_col3 = st.columns(3)
-
-    decision_col1.metric("Final Decision", tcc_result.get("final_decision"))
-    decision_col2.metric("Blockers", len(tcc_result.get("blockers", [])))
-    decision_col3.metric("Warnings", len(tcc_result.get("warnings", [])))
-
-    if tcc_result.get("final_decision") == "ready_for_manual_paper_review":
-        st.success(tcc_result.get("final_message"))
-    else:
-        st.error(tcc_result.get("final_message"))
-
-    if tcc_result.get("blockers"):
-        st.subheader("Blockers")
-        for blocker in tcc_result.get("blockers", []):
-            st.error(blocker)
-
-    if tcc_result.get("warnings"):
-        st.subheader("Warnings")
-        for warning in tcc_result.get("warnings", []):
-            st.warning(warning)
-
-    st.subheader("Workflow Step Summary")
-
-    step_summary = get_control_center_step_summary(tcc_result)
-    st.dataframe(pd.DataFrame(step_summary), use_container_width=True)
-
-    with st.expander("Full Trading Control Center Result"):
-        st.json(tcc_result)
-
 
 with logout_col2:
     if st.button("Logout"):

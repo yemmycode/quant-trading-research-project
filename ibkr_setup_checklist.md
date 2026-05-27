@@ -567,3 +567,23 @@
 - [ ] Syntax checks passed
 - [ ] No broker order submitted
 - [ ] No live trading enabled
+
+## Lesson C2 Trading Control Center
+
+- [ ] trading_control_center.py created
+- [ ] test_trading_control_center.py created
+- [ ] Trading Control Center test executed
+- [ ] Trading Control Center added near top of Streamlit
+- [ ] Authentication block repaired after Trading Control Center insertion
+- [ ] Signal generation connected
+- [ ] Order proposal connected
+- [ ] Account snapshot connected
+- [ ] Market-hours check connected
+- [ ] Position-aware check connected
+- [ ] Duplicate-order guard connected
+- [ ] Price validation connected
+- [ ] Risk manager connected
+- [ ] Final decision summary displayed
+- [ ] Workflow step summary displayed
+- [ ] No broker order submitted
+- [ ] No live trading enabled
