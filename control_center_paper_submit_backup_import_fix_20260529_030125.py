@@ -10,7 +10,7 @@ It submits only when the control-center decision is ready and manual confirmatio
 
 from datetime import datetime
 
-from brokers.broker_factory import get_broker
+from broker_factory import get_broker
 from order_state_manager import create_order_state_from_proposal, record_broker_submission_state
 from trade_audit import log_audit_event
 from trading_database import insert_broker_order, safe_json, initialize_trading_database, get_database_connection
