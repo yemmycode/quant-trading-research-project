@@ -467,6 +467,7 @@ def read_table(table_name, limit=100):
         "test_run_results",
         "trading_control_center_runs",
         "trading_control_center_dry_runs",
+        "trading_control_center_paper_submissions",
     ]
 
     if table_name not in allowed_tables:

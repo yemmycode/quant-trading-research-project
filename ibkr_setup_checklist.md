@@ -630,3 +630,18 @@
 - [ ] End-to-end dry run test executed
 - [ ] No broker order submitted
 - [ ] No live trading enabled
+
+## Lesson C6 Controlled Paper Order Submission from Trading Control Center
+
+- [ ] control_center_paper_submit.py created
+- [ ] trading_control_center_paper_submissions table created
+- [ ] SQLite viewer updated with paper submission table
+- [ ] Controlled Paper Order Submission panel added to Streamlit
+- [ ] Manual confirmation SUBMIT PAPER required
+- [ ] TCC final decision required before submission
+- [ ] IBKR paper mode required
+- [ ] Port 7497 confirmed
+- [ ] Live trading remains disabled
+- [ ] system_health.py updated
+- [ ] Syntax checks passed
+- [ ] Controlled paper order submission tested

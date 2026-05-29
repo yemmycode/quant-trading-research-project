@@ -1,4 +1,3 @@
-from control_center_paper_submit import submit_control_center_paper_order, read_control_center_paper_submissions, summarize_control_center_paper_submissions
 from control_center_dry_run import run_control_center_dry_run, read_control_center_dry_runs, summarize_control_center_dry_runs
 from dashboard_structure import get_dashboard_structure, get_dashboard_cleanup_rules
 from trading_database import read_trading_control_center_runs, summarize_trading_control_center_runs
@@ -413,102 +412,6 @@ try:
 
 except Exception as e:
     st.warning("Could not load dry run summary.")
-    st.caption(str(e))
-
-
-
-
-# ==============================
-# Controlled Paper Order Submission
-# ==============================
-
-st.markdown("---")
-st.subheader("Controlled Paper Order Submission")
-
-st.warning(
-    "This section is for IBKR PAPER trading only. "
-    "It requires the Trading Control Center final decision to be ready_for_manual_paper_review "
-    "and requires exact manual confirmation."
-)
-
-latest_tcc_result_for_submit = st.session_state.get("latest_trading_control_center_result")
-
-if not latest_tcc_result_for_submit:
-    st.info("Run the Trading Control Center Check first.")
-else:
-    submit_decision = latest_tcc_result_for_submit.get("final_decision")
-    st.write("Latest Trading Control Center Decision:", submit_decision)
-
-    if submit_decision != "ready_for_manual_paper_review":
-        st.error("Paper submission is blocked because the latest Control Center decision is not ready.")
-    else:
-        st.success("Latest Control Center result is ready for manual paper review.")
-
-    manual_paper_confirmation = st.text_input(
-        "Type SUBMIT PAPER to submit to IBKR paper account",
-        value="",
-        key="manual_paper_confirmation_tcc"
-    )
-
-    submit_tcc_paper_button = st.button(
-        "Submit Controlled IBKR Paper Order",
-        key="submit_controlled_ibkr_paper_order"
-    )
-
-    if submit_tcc_paper_button:
-        try:
-            paper_submission_result = submit_control_center_paper_order(
-                control_result=latest_tcc_result_for_submit,
-                manual_confirmation=manual_paper_confirmation
-            )
-
-            st.session_state["latest_tcc_paper_submission_result"] = paper_submission_result
-
-            st.success("Controlled IBKR paper order submitted.")
-            st.json(paper_submission_result)
-
-        except Exception as e:
-            st.error("Controlled paper order submission failed or was blocked.")
-            st.exception(e)
-
-try:
-    paper_submit_summary = summarize_control_center_paper_submissions(limit=500)
-
-    ps_col1, ps_col2, ps_col3 = st.columns(3)
-
-    ps_col1.metric("Total Paper Submissions", paper_submit_summary.get("total_submissions", 0))
-    ps_col2.metric("Submitted Count", paper_submit_summary.get("submitted_count", 0))
-    ps_col3.metric("Latest Status", paper_submit_summary.get("latest_status", "N/A"))
-
-    with st.expander("Recent Controlled Paper Submissions"):
-        paper_submit_limit = st.number_input(
-            "Paper Submissions to View",
-            min_value=5,
-            max_value=500,
-            value=50,
-            step=5,
-            key="tcc_paper_submission_limit"
-        )
-
-        paper_submissions_df = read_control_center_paper_submissions(limit=paper_submit_limit)
-
-        if paper_submissions_df.empty:
-            st.info("No controlled paper submissions recorded yet.")
-        else:
-            st.dataframe(paper_submissions_df, use_container_width=True)
-
-            paper_submit_csv = paper_submissions_df.to_csv(index=False).encode("utf-8")
-
-            st.download_button(
-                label="Download Paper Submissions CSV",
-                data=paper_submit_csv,
-                file_name="trading_control_center_paper_submissions.csv",
-                mime="text/csv",
-                key="download_tcc_paper_submissions_csv"
-            )
-
-except Exception as e:
-    st.warning("Could not load controlled paper submission summary.")
     st.caption(str(e))
 
 
