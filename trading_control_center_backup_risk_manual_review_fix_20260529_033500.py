@@ -324,7 +324,7 @@ def run_trading_control_center_check(
             estimated_price=estimated_price,
             estimated_order_value=estimated_order_value,
             current_position_quantity=0,
-            manual_confirmation_given=True,
+            manual_confirmation_given=False,
             broker_name="ibkr",
             execution_mode="BROKER_PAPER",
             live_order=False
@@ -334,10 +334,6 @@ def run_trading_control_center_check(
             "approved": risk_result.approved,
             "reason": risk_result.reason,
             "details": risk_result.details,
-            "manual_confirmation_context": (
-                "Trading Control Center pre-check assumes manual review readiness. "
-                "Actual IBKR paper submission still requires exact SUBMIT PAPER confirmation."
-            ),
         }
 
         result["workflow_steps"]["risk_manager"] = risk_payload

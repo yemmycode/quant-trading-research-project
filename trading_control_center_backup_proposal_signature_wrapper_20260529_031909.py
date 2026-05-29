@@ -10,7 +10,6 @@ It prepares and evaluates a trading decision before any broker submission.
 """
 
 from datetime import datetime
-import inspect
 
 from live_signal import generate_live_signal
 from order_proposal import build_order_proposal_from_signal
@@ -112,83 +111,12 @@ def run_trading_control_center_check(
 
     # 4. Build order proposal
     try:
-        proposal_signature = inspect.signature(build_order_proposal_from_signal)
-
-        possible_kwargs = {
-            "signal_result": signal_result,
-            "signal": signal_result,
-            "latest_signal": signal_result,
-            "quantity": quantity,
-            "order_quantity": quantity,
-            "shares": quantity,
-            "order_type": order_type,
-            "limit_price": limit_price,
-        }
-
-        accepted_kwargs = {
-            key: value
-            for key, value in possible_kwargs.items()
-            if key in proposal_signature.parameters
-        }
-
-        try:
-            proposal = build_order_proposal_from_signal(**accepted_kwargs)
-        except TypeError:
-            proposal = build_order_proposal_from_signal(signal_result)
-
-        if not isinstance(proposal, dict):
-            proposal = {
-                "ticker": ticker,
-                "side": signal_result.get("action") or signal_result.get("signal_action"),
-                "quantity": quantity,
-                "order_type": order_type,
-                "limit_price": limit_price,
-                "actionable": False,
-                "proposal_status": "invalid",
-                "reason": "build_order_proposal_from_signal did not return a dictionary."
-            }
-
-        proposal.setdefault("ticker", ticker)
-        proposal.setdefault("order_type", order_type)
-
-        # Trading Control Center manual quantity override:
-        # If the proposal engine calculates 0 shares because position size is too small,
-        # use the manually entered dashboard quantity instead.
-        try:
-            proposal_quantity = float(proposal.get("quantity", 0) or 0)
-        except Exception:
-            proposal_quantity = 0
-
-        try:
-            manual_quantity = float(quantity or 0)
-        except Exception:
-            manual_quantity = 0
-
-        if proposal_quantity <= 0 and manual_quantity > 0:
-            proposal["quantity"] = manual_quantity
-            proposal["actionable"] = True
-            proposal["proposal_status"] = "manual_quantity_override"
-            proposal["reason"] = (
-                "Proposal quantity was zero, so Trading Control Center manual quantity was used."
-            )
-        else:
-            proposal.setdefault("quantity", quantity)
-
-        if limit_price is not None:
-            proposal.setdefault("limit_price", limit_price)
-
-        if "side" not in proposal or not proposal.get("side"):
-            signal_action = (
-                signal_result.get("action")
-                or signal_result.get("signal_action")
-                or signal_result.get("recommended_order_side")
-            )
-
-            if signal_action:
-                proposal["side"] = str(signal_action).upper()
-
-        if "actionable" not in proposal:
-            proposal["actionable"] = proposal.get("side") in ["BUY", "SELL"]
+        proposal = build_order_proposal_from_signal(
+            signal_result=signal_result,
+            quantity=quantity,
+            order_type=order_type,
+            limit_price=limit_price,
+        )
 
         result["workflow_steps"]["order_proposal"] = proposal
 
@@ -324,7 +252,7 @@ def run_trading_control_center_check(
             estimated_price=estimated_price,
             estimated_order_value=estimated_order_value,
             current_position_quantity=0,
-            manual_confirmation_given=True,
+            manual_confirmation_given=False,
             broker_name="ibkr",
             execution_mode="BROKER_PAPER",
             live_order=False
@@ -334,10 +262,6 @@ def run_trading_control_center_check(
             "approved": risk_result.approved,
             "reason": risk_result.reason,
             "details": risk_result.details,
-            "manual_confirmation_context": (
-                "Trading Control Center pre-check assumes manual review readiness. "
-                "Actual IBKR paper submission still requires exact SUBMIT PAPER confirmation."
-            ),
         }
 
         result["workflow_steps"]["risk_manager"] = risk_payload
